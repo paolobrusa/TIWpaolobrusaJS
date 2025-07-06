@@ -20,7 +20,8 @@ public class LoginFilter implements Filter {
         HttpServletRequest request  = (HttpServletRequest) servletRequest;
         HttpServletResponse response = (HttpServletResponse) servletResponse;
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        if ((path.equals("/Login") || path.equals("/css/login.css")) && request.getSession().getAttribute("user") == null) {
+        //System.out.println(path);
+        if ((path.equals("/Login") || path.equals("/css/login.css") || path.equals("/scripts/login.js")) && request.getSession().getAttribute("user") == null) {
             filterChain.doFilter(request, response);
         }
         else if (request.getSession().getAttribute("user") != null && request.getSession(false) != null && Arrays.asList(paths).contains(path)){

@@ -5,6 +5,7 @@ import it.polimi.tiwpaolobrusajs.dao.UtenteDAO;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +18,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+@MultipartConfig
 @WebServlet("/Login")
 public class Login extends HttpServlet {
     @Serial
@@ -52,24 +54,25 @@ public class Login extends HttpServlet {
             request.getSession().removeAttribute("errorMessage");
             request.setAttribute("errorMessage", errorMessage);
         }
-        String path = "/WEB-INF/login.jsp";
+        String path = "/index.html";
         dispatcher = request.getRequestDispatcher(path);
         dispatcher.forward(request, response);
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
         UtenteDAO uDAO = new UtenteDAO(con);
         Utente user;
         try {
             user = uDAO.getUtente(request.getParameter("username"), request.getParameter("password"));
         } catch (SQLException e) {
-            request.getSession().setAttribute("errorMessage", e.getCause().getMessage());
-            response.sendRedirect(request.getContextPath() + "/Login");
+            response.getWriter().write("{\"success\": false, \"message\": \"" + e.getCause().getMessage() +"\"}");
             return;
         }
         HttpSession session = request.getSession(true);
         session.setAttribute("user", user.getUsername());
-        response.sendRedirect(request.getContextPath() + "/Homepage");
+        response.getWriter().write("{\"success\": true, \"redirectUrl\": \"/Acquisto\"}");
     }
 
     public void destroy() {

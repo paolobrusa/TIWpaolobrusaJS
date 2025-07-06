@@ -20,42 +20,26 @@
     }
 
     function loginUser(username, password) {
-        /*
-        fetch('/Login', {
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('password', password);
+        console.log(formData);
+        fetch('Login', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                username: username,
-                password: password
-            })
+            body: formData
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showMessage('Login effettuato con successo!', 'success');
-                // Reindirizza alla pagina principale
                 setTimeout(() => {
                     window.location.href = data.redirectUrl;
                 }, 1000);
             } else {
-                showMessage(data.message || 'Credenziali non valide', 'error');
+                showMessage(data.message, 'error');
             }
         })
         .catch(error => {
             showMessage('Errore di connessione', 'error');
         });
-        */
-        // setTimeout(() => {
-        //     if (username === 'admin' && password === 'password') {
-        //         showMessage('Login effettuato con successo!', 'success');
-        //         setTimeout(() => {
-        //             alert('Reindirizzamento alla dashboard...');
-        //         }, 1000);
-        //     } else {
-        //         showMessage('Username o password non corretti', 'error');
-        //     }
-        // }, 500);
     }
 })();
