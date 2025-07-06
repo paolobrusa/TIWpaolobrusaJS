@@ -1,0 +1,99 @@
+package it.polimi.tiwpaolobrusajs.controllers.filterAndUtils;
+
+import it.polimi.tiwpaolobrusajs.beans.Articolo;
+import it.polimi.tiwpaolobrusajs.dao.ArticoloDAO;
+import it.polimi.tiwpaolobrusajs.dao.AstaDAO;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.io.Serial;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+
+@WebServlet("/CreateAsta")
+public class CreateAsta extends HttpServlet {
+    @Serial
+    private static final long serialVersionUID = 1L;
+    private Connection con = null;
+
+    public CreateAsta() {
+        super();
+    }
+
+    public void init() throws ServletException {
+        ServletContext context = getServletContext();
+        String user = context.getInitParameter("user");
+        String pwd = context.getInitParameter("pwd");
+        String driver = context.getInitParameter("driver");
+        String url = context.getInitParameter("urlDb");
+        try {
+            Class.forName(driver);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Can't load driver");
+        }
+        try {
+            con = DriverManager.getConnection(url, user, pwd);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed db connection");
+        }
+    }
+
+    public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.sendRedirect(request.getContextPath() + "/Vendo");
+    }
+
+    public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String[] c = request.getParameterValues("codice");
+        if(c == null || c.length == 0){
+            request.getSession().setAttribute("errorMessage", "Devi selezionare almeno 1 articolo");
+            response.sendRedirect(request.getContextPath() + "/Vendo");
+            return;
+        }
+        List<Integer> cods = new ArrayList<>();
+        for (String s : c) {
+            try {
+                cods.add(Integer.parseInt(s));
+            } catch (Exception e) {
+                request.getSession().setAttribute("errorMessage", e.getCause().getMessage());
+                response.sendRedirect(request.getContextPath() + "/Vendo");
+                return;
+            }
+        }
+        ArticoloDAO aDao = new ArticoloDAO(con);
+        List<Articolo> articoli;
+        try {
+            articoli = aDao.getArticoli(cods);
+        } catch (SQLException e) {
+            request.getSession().setAttribute("errorMessage", e.getCause().getMessage());
+            response.sendRedirect(request.getContextPath() + "/Vendo");
+            return;
+        }
+        AstaDAO aDao2 = new AstaDAO(con);
+        int idAsta = 0;
+        try {
+            idAsta = aDao2.addAsta(articoli.stream().mapToInt(Articolo::getPrice).sum(), Integer.parseInt(request.getParameter("minBid")), LocalDateTime.parse(request.getParameter("date"), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")));
+        } catch (SQLException e) {
+            request.getSession().setAttribute("errorMessage", e.getCause().getMessage());
+            response.sendRedirect(request.getContextPath() + "/Vendo");
+            return;
+        }
+        try {
+            aDao2.addArticoliAsta(idAsta, cods);
+        } catch (SQLException e) {
+            request.getSession().setAttribute("errorMessage", e.getCause().getMessage());
+            response.sendRedirect(request.getContextPath() + "/Vendo");
+            return;
+        }
+        response.sendRedirect(request.getContextPath() + "/Vendo");
+    }
+}
