@@ -2,9 +2,175 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOMEPAGE</title>
+    <link rel="stylesheet" href="css/aste.css">
+    <link rel="stylesheet" href="css/acquisto.css">
 </head>
 <body>
 
+<!-- Vista ACQUISTO -->
+<div id="acquisto-view" class="aste-container">
+    <header class="aste-header">
+        <h1>Acquisto</h1>
+        <p>Cerca articoli che ti interessano</p>
+    </header>
+
+    <div id="error-message" class="error-message" style="display: none;"></div>
+
+    <div class="search-section">
+        <form class="search-form" id="search-form">
+            <div class="search-container">
+                <label>
+                    <input type="text" name="keyWord" placeholder="Cerca nelle aste..." class="search-input" id="search-input">
+                </label>
+                <button type="submit" class="search-button">Cerca</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="tables-container">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title aste-title">Aste Ricercate</h2>
+                <span class="section-count" id="aste-count">0 aste</span>
+            </div>
+
+            <div id="aste-content">
+                <div class="no-aste-message">
+                    <h2>Cerca articoli per visualizzare aste corrispondenti</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title aggiud-title">Aggiudicazioni</h2>
+                <span class="section-count" id="aggiud-count">0 aggiudicazioni</span>
+            </div>
+
+            <div id="aggiud-content">
+                <div class="no-aste-message">
+                    <h3>Nessuna aggiudicazione</h3>
+                    <p>Non ci sono ancora aggiudicazioni nel sistema</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="homepage-button-container">
+        <button id="goto-vendo-btn" class="btn-homepage">Vai a Vendo</button>
+    </div>
+</div>
+
+<!-- Vista VENDO -->
+<div id="vendo-view" class="aste-container" style="display: none;">
+    <div class="aste-header">
+        <h1>Aste</h1>
+        <p>Gestisci le tue aste</p>
+    </div>
+
+    <div id="vendo-error-message" class="error-message" style="display: none;"></div>
+
+    <div class="tables-container">
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title active-title">🟢 Aste Aperte</h2>
+                <div class="section-count" id="aste-aperte-count">0 aste</div>
+            </div>
+
+            <div id="aste-aperte-content">
+                <div class="no-aste-message">
+                    <div class="no-aste-icon">🟢</div>
+                    <h3>Nessuna asta aperta</h3>
+                    <p>Non hai aste attualmente attive</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-container">
+            <div class="section-header">
+                <h2 class="section-title closed-title">🔴 Aste Chiuse</h2>
+                <div class="section-count" id="aste-chiuse-count">0 aste</div>
+            </div>
+
+            <div id="aste-chiuse-content">
+                <div class="no-aste-message">
+                    <div class="no-aste-icon">🔴</div>
+                    <h3>Nessuna asta chiusa</h3>
+                    <p>Non hai ancora aste terminate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="forms-container">
+        <div class="form-container">
+            <div class="form-header">
+                <h2 class="form-title article-title">Crea Articolo</h2>
+                <p class="form-subtitle">Aggiungi un nuovo articolo</p>
+            </div>
+
+            <form class="form-content" id="create-article-form">
+                <div class="input-group">
+                    <label for="nome" class="input-label">Nome Articolo</label>
+                    <input type="text" id="nome" name="nome" class="form-input" required placeholder="Nome articolo">
+                </div>
+
+                <div class="input-group">
+                    <label for="descrizione" class="input-label">Descrizione</label>
+                    <textarea id="descrizione" name="descrizione" class="form-textarea" required placeholder="Descrizione" rows="3"></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label for="path" class="input-label">Path Immagine</label>
+                    <input type="text" id="path" name="path" class="form-input" placeholder="URL o percorso dell'immagine">
+                </div>
+
+                <div class="input-group">
+                    <label for="prezzo" class="input-label">Prezzo Base (€)</label>
+                    <input type="number" id="prezzo" name="prezzo" class="form-input" step="1" min="1" required placeholder="0">
+                </div>
+
+                <button type="submit" class="btn-submit btn-article">Crea Articolo</button>
+            </form>
+        </div>
+
+        <div class="form-container">
+            <div class="form-header">
+                <h2 class="form-title auction-title">Crea Asta</h2>
+                <p class="form-subtitle">Crea una nuova asta</p>
+            </div>
+
+            <form class="form-content" id="create-auction-form">
+                <div class="input-group">
+                    <label class="input-label">Seleziona Articoli</label>
+                    <div class="checkbox-container" id="articoli-container">
+                        <div class="no-articles-message">
+                            <p>Nessun articolo disponibile. Crea prima un articolo.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="minBid" class="input-label">Rilancio Minimo (€)</label>
+                    <input type="number" id="minBid" name="minBid" class="form-input" step="1" min="1" required placeholder="0">
+                </div>
+
+                <div class="input-group">
+                    <label for="dataScadenza" class="input-label">Data Scadenza</label>
+                    <input type="datetime-local" id="dataScadenza" name="date" class="form-input" required step="1">
+                </div>
+
+                <button type="submit" class="btn-submit btn-auction" id="create-auction-btn" disabled>Crea Asta</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="homepage-button-container">
+        <button id="goto-acquisto-btn" class="btn-homepage">Vai ad Acquisto</button>
+    </div>
+</div>
+<script src="scripts/spa.js" charset="utf-8" defer></script>
 </body>
 </html>

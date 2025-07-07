@@ -31,8 +31,9 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                showMessage('Login in corso!', 'success');
                 setTimeout(() => {
-                    window.location.href = data.redirectUrl;
+                    window.location.href = "Homepage";
                 }, 1000);
             } else {
                 showMessage(data.message, 'error');

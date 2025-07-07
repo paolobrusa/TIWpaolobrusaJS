@@ -44,7 +44,7 @@ public class Homepage extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String path = "/WEB-INF/homepage.jsp";
+        String path = "/Home.html";
         dispatcher = request.getRequestDispatcher(path);
         dispatcher.forward(request, response);
     }

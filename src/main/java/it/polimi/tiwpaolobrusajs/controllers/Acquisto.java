@@ -1,5 +1,7 @@
 package it.polimi.tiwpaolobrusajs.controllers;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import it.polimi.tiwpaolobrusajs.beans.Asta;
 import it.polimi.tiwpaolobrusajs.beans.Offerta;
 import it.polimi.tiwpaolobrusajs.controllers.filterAndUtils.TimeLeft;
@@ -53,25 +55,29 @@ public class Acquisto extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Gson gson = new Gson();
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
         OffertaDAO oDao = new OffertaDAO(con);
         List<Offerta> aggiud;
         try {
             aggiud = oDao.getOfferteAggiudicate(request.getSession().getAttribute("user").toString());
         } catch (SQLException e) {
-            request.setAttribute("errorMessage", "Errore caricamento aste");
-            String path = "/WEB-INF/acquisto.jsp";
-            dispatcher = request.getRequestDispatcher(path);
-            dispatcher.forward(request, response);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("error", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
-        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
-        if (errorMessage != null) {
-            request.getSession().removeAttribute("errorMessage");
-            request.setAttribute("errorMessage", errorMessage);
-        }
+//        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
+//        if (errorMessage != null) {
+//            request.getSession().removeAttribute("errorMessage");
+//            request.setAttribute("errorMessage", errorMessage);
+//        }
         List<Asta> aste = new ArrayList<>();
         AstaDAO aDao = new AstaDAO(con);
         String keyWord = request.getParameter("search");
+        String errorMessage = null;
         if (keyWord != null) {
             keyWord = keyWord.replace("\\", "\\\\")
                     .replace("%", "\\%")
@@ -80,29 +86,31 @@ public class Acquisto extends HttpServlet {
                 aste = aDao.getAstaByKeyword(keyWord, request.getSession().getAttribute("user").toString());
                 TimeLeft.timeLeft(aste);
             } catch (SQLException e) {
-                request.getSession().setAttribute("errorMessage", e.getMessage());
-                response.sendRedirect(request.getContextPath() + "/Acquisto");
+                JsonObject jsonResponse = new JsonObject();
+                jsonResponse.addProperty("success", false);
+                jsonResponse.add("error", gson.toJsonTree(e.getMessage()));
+                response.getWriter().write(gson.toJson(jsonResponse));
                 return;
             }
             if (aste.isEmpty()) {
-                request.setAttribute("errorMessage", "Non trovato");
+                errorMessage = "Non trovato";
             }
         }
-        request.getSession().setAttribute("aste", aste);
-        request.setAttribute("aggiud", aggiud);
-        String path = "/WEB-INF/acquisto.jsp";
-        dispatcher = request.getRequestDispatcher(path);
-        dispatcher.forward(request, response);
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.add("aste", gson.toJsonTree(aste));
+        jsonResponse.add("aggiudicazioni", gson.toJsonTree(aggiud));
+        jsonResponse.addProperty("success", true);
+        if (errorMessage != null) {
+            jsonResponse.addProperty("error", errorMessage);
+        }
+        response.getWriter().write(gson.toJson(jsonResponse));
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String keyWord = request.getParameter("keyWord");
-        if(keyWord == null){
-            request.getSession().setAttribute("errorMessage", "Parametro non puo essere null");
-            response.sendRedirect(request.getContextPath() + "/Acquisto");
-            return;
-        }
-        keyWord = URLEncoder.encode(keyWord, StandardCharsets.UTF_8);
-        response.sendRedirect(request.getContextPath() + "/Acquisto?search=" + keyWord);
+        Gson gson = new Gson();
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", false);
+        jsonResponse.add("error", gson.toJsonTree("Supportato solo il get!!"));
+        response.getWriter().write(gson.toJson(jsonResponse));
     }
 }

@@ -1,5 +1,7 @@
 package it.polimi.tiwpaolobrusajs.controllers;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import it.polimi.tiwpaolobrusajs.beans.Articolo;
 import it.polimi.tiwpaolobrusajs.beans.Asta;
 import it.polimi.tiwpaolobrusajs.controllers.filterAndUtils.TimeLeft;
@@ -25,7 +27,6 @@ public class Vendo extends HttpServlet {
     @Serial
     private static final long serialVersionUID = 1L;
     private Connection con = null;
-    RequestDispatcher dispatcher = null;
 
     public Vendo() {
         super();
@@ -40,7 +41,7 @@ public class Vendo extends HttpServlet {
         try {
             Class.forName(driver);
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException("Can't load driver");     //metti qualcosa qui per disconnessione sessione
+            throw new RuntimeException("Can't load driver");
         }
         try {
             con = DriverManager.getConnection(url, user, pwd);
@@ -50,11 +51,14 @@ public class Vendo extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
-        if (errorMessage != null) {
-            request.getSession().removeAttribute("errorMessage");
-            request.setAttribute("errorMessage", errorMessage);
-        }
+        Gson gson = new Gson();
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+//        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
+//        if (errorMessage != null) {
+//            request.getSession().removeAttribute("errorMessage");
+//            request.setAttribute("errorMessage", errorMessage);
+//        }
         AstaDAO aDAO = new AstaDAO(con);
         ArticoloDAO artDAO = new ArticoloDAO(con);
         List<Asta> aste;
@@ -63,19 +67,26 @@ public class Vendo extends HttpServlet {
             aste = aDAO.getAste(request.getSession().getAttribute("user").toString());
             articoli = artDAO.getArticoli(request.getSession().getAttribute("user").toString());
             TimeLeft.timeLeft(aste);
-            String path = "/WEB-INF/vendo.jsp";
-            request.setAttribute("aste", aste);
-            request.setAttribute("articoli", articoli);
-            dispatcher = request.getRequestDispatcher(path);
-            dispatcher.forward(request, response);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", true);
+            jsonResponse.add("aste", gson.toJsonTree(aste));
+            jsonResponse.add("articoli", gson.toJsonTree(articoli));
+            response.getWriter().write(gson.toJson(jsonResponse));
         }
         catch (Exception e){
-            response.sendRedirect(request.getContextPath() + "/Homepage"); //QUA MAGARI MANDA ALLA HOMEPAGE CON ERRORE
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
         }
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.sendRedirect(request.getContextPath() + "/Vendo");
+        Gson gson = new Gson();
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", false);
+        jsonResponse.add("message", gson.toJsonTree("Supportato solo il get!!"));
+        response.getWriter().write(gson.toJson(jsonResponse));
     }
 
     public void destroy() {

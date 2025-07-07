@@ -27,7 +27,7 @@ public class UtenteDAO {
             if (rs.next())
                 u = new Utente(rs.getString("username"), rs.getString("nome"),rs.getString("cognome"),rs.getString("indirizzo"));
             else
-                throw new SQLException("Username or password incorrect");
+                throw new SQLException("Username o password non validi"); //VOLENDO SI PUO MODIFICARE, TORNA NULL E CONTROLLI SU SERVER
         }catch (SQLException e){
             throw new SQLException(e);
         }
