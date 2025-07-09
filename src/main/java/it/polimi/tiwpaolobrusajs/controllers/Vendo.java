@@ -1,6 +1,7 @@
 package it.polimi.tiwpaolobrusajs.controllers;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import it.polimi.tiwpaolobrusajs.beans.Articolo;
 import it.polimi.tiwpaolobrusajs.beans.Asta;
@@ -51,7 +52,7 @@ public class Vendo extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        Gson gson = new Gson();
+        Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 //        String errorMessage = (String) request.getSession().getAttribute("errorMessage");

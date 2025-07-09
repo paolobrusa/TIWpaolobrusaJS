@@ -44,9 +44,14 @@ public class Homepage extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String path = "/HomeProva1.html";
+        String user = request.getSession().getAttribute("user").toString();
+        response.setContentType("text/html");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().println("<!DOCTYPE html>");
+        response.getWriter().println("<script>window.CURRENT_USER = '" + user.replace("'", "\\'") + "';</script>");
+        String path = "/HomeProva2.html";
         dispatcher = request.getRequestDispatcher(path);
-        dispatcher.forward(request, response);
+        dispatcher.include(request, response);
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {

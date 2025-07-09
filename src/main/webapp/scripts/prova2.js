@@ -1,58 +1,48 @@
-(function () {
-// ===== GESTIONE DATI PERSISTENTI (localStorage) =====
+//(function () {
+// ===== GESTIONE DATI PERSISTENTI (localStorage simulato con cookies) =====
     const PersistentStorage = {
-        setItem(key, value) {
-            try {
-                localStorage.setItem(key, JSON.stringify(value));
-            } catch (e) {
-                console.error('LocalStorage error:', e);
-            }
+        setCookie(name, value, days) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = `${name}=${encodeURIComponent(JSON.stringify(value))};expires=${expires.toUTCString()};path=/`;
         },
 
-        getItem(key) {
-            try {
-                const item = localStorage.getItem(key);
-                return item ? JSON.parse(item) : null;
-            } catch (e) {
-                console.error('LocalStorage error:', e);
-                return null;
+        getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) {
+                    try {
+                        return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
+                    } catch (e) {
+                        return null;
+                    }
+                }
             }
+            return null;
         },
 
-        removeItem(key) {
-            try {
-                localStorage.removeItem(key);
-            } catch (e) {
-                console.error('LocalStorage error:', e);
-            }
+        removeCookie(name) {
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
         }
     };
 
 // ===== GESTIONE DATI UTENTE =====
     const UserDataManager = {
-        STORAGE_KEY_PREFIX: 'auction_user_data_',
+        STORAGE_KEY: 'auction_user_data',
         EXPIRY_DAYS: 30,
-        currentUser: null,
-
-        init(username) {
-            this.currentUser = username;
-        },
-
-        getStorageKey() {
-            return this.STORAGE_KEY_PREFIX + this.currentUser;
-        },
 
         getUserData() {
-            if (!this.currentUser) return this.createNewUserData();
-
-            const data = PersistentStorage.getItem(this.getStorageKey());
+            const data = PersistentStorage.getCookie(this.STORAGE_KEY);
             if (!data) {
                 return this.createNewUserData();
             }
 
             // Controlla se i dati sono scaduti
             if (Date.now() > data.expiryDate) {
-                PersistentStorage.removeItem(this.getStorageKey());
+                PersistentStorage.removeCookie(this.STORAGE_KEY);
                 return this.createNewUserData();
             }
 
@@ -61,7 +51,6 @@
 
         createNewUserData() {
             const userData = {
-                username: this.currentUser,
                 isFirstTime: true,
                 lastAction: null,
                 lastActionDate: null,
@@ -73,11 +62,8 @@
         },
 
         saveUserData(userData) {
-            if (!this.currentUser) return;
-
             userData.expiryDate = Date.now() + (this.EXPIRY_DAYS * 24 * 60 * 60 * 1000);
-            userData.username = this.currentUser;
-            PersistentStorage.setItem(this.getStorageKey(), userData);
+            PersistentStorage.setCookie(this.STORAGE_KEY, userData, this.EXPIRY_DAYS);
         },
 
         setLastAction(action) {
@@ -158,53 +144,6 @@
 // ===== APPLICAZIONE PRINCIPALE =====
     const app = {
         currentSection: null,
-        currentUser: null,
-
-        init() {
-            this.getCurrentUser();
-            this.setupEventListeners();
-
-            if (this.currentUser) {
-                UserDataManager.init(this.currentUser);
-            }
-
-            const userData = UserDataManager.getUserData();
-
-            // Determina quale sezione mostrare
-            if (userData.isFirstTime) {
-                this.showSection('acquisto');
-            } else if (userData.lastAction === 'auction_created') {
-                this.showSection('vendo');
-            } else {
-                this.showSection('acquisto');
-            }
-        },
-
-        getCurrentUser() {
-            // Ottieni l'username dalla variabile globale impostata dalla servlet
-            if (window.CURRENT_USER && window.CURRENT_USER.trim() !== '') {
-                this.currentUser = window.CURRENT_USER.trim();
-            } else {
-                console.warn('Current user not found in global variable, using default');
-                this.currentUser = 'default_user';
-            }
-        },
-
-        setupEventListeners() {
-            // Navigation listeners
-            document.getElementById('nav-acquisto').addEventListener('click', () => {
-                this.showSection('acquisto');
-            });
-
-            document.getElementById('nav-vendo').addEventListener('click', () => {
-                this.showSection('vendo');
-            });
-
-            // Logout listener
-            document.querySelector('.btn-logout').addEventListener('click', () => {
-                this.logout();
-            });
-        },
 
         showMessage(message, type = 'info') {
             const container = document.getElementById('message-container');
@@ -255,9 +194,9 @@
 
             document.getElementById('content').innerHTML = `
             <div class="search-section">
-                <form class="search-form" id="search-form">
+                <form class="search-form" onsubmit="app.searchAuctions(event)">
                     <div class="search-container">
-                        <input type="text" id="search-keyword" name="search" placeholder="Cerca nelle aste..." class="search-input">
+                        <input type="text" id="search-keyword" placeholder="Cerca nelle aste..." class="search-input">
                         <button type="submit" class="search-button">Cerca</button>
                     </div>
                 </form>
@@ -290,11 +229,6 @@
                 </div>
             </div>
         `;
-
-            // Setup search form listener
-            document.getElementById('search-form').addEventListener('submit', (e) => {
-                this.searchAuctions(e);
-            });
 
             // Carica aste visitate se non è la prima volta
             if (!userData.isFirstTime && userData.visitedAuctions.length > 0) {
@@ -335,7 +269,7 @@
                         <h2 class="form-title article-title">Crea Articolo</h2>
                         <p class="form-subtitle">Aggiungi un nuovo articolo</p>
                     </div>
-                    <form id="create-article-form" class="form-content">
+                    <form onsubmit="app.createArticle(event)" class="form-content">
                         <div class="input-group">
                             <label for="article-name" class="input-label">Nome Articolo</label>
                             <input type="text" id="article-name" name="nome" class="form-input" required placeholder="Nome articolo">
@@ -361,7 +295,7 @@
                         <h2 class="form-title auction-title">Crea Asta</h2>
                         <p class="form-subtitle">Crea una nuova asta</p>
                     </div>
-                    <form id="create-auction-form" class="form-content">
+                    <form onsubmit="app.createAuction(event)" class="form-content">
                         <div class="input-group">
                             <label class="input-label">Seleziona Articoli</label>
                             <div class="checkbox-container" id="articles-checkbox">
@@ -381,15 +315,6 @@
                 </div>
             </div>
         `;
-
-            // Setup form listeners
-            document.getElementById('create-article-form').addEventListener('submit', (e) => {
-                this.createArticle(e);
-            });
-
-            document.getElementById('create-auction-form').addEventListener('submit', (e) => {
-                this.createAuction(e);
-            });
 
             await this.loadUserAuctions();
             await this.loadUserArticles();
@@ -412,7 +337,7 @@
                 <div class="aste-container">
                     <div class="aste-header">
                         <h2>Offerta - Asta #${auctionId}</h2>
-                        <button class="btn-homepage" id="back-to-acquisto">
+                        <button class="btn-homepage" onclick="app.showSection('acquisto')">
                             ← Torna ad Acquisto
                         </button>
                     </div>
@@ -441,7 +366,7 @@
                                 <h2 class="form-title auction-title">Offerta</h2>
                                 <p class="form-subtitle">Inserisci la tua offerta</p>
                             </div>
-                            <form id="offer-form" class="form-content">
+                            <form onsubmit="app.makeOffer(event, ${auctionId})" class="form-content">
                                 <div class="input-group">
                                     <label for="offertaprezzo" class="input-label">Importo Offerta (€)</label>
                                     <input type="number" name="offertaprezzo" id="offertaprezzo" 
@@ -453,16 +378,6 @@
                     </div>
                 </div>
             `;
-
-                // Setup listeners
-                document.getElementById('back-to-acquisto').addEventListener('click', () => {
-                    this.showSection('acquisto');
-                });
-
-                document.getElementById('offer-form').addEventListener('submit', (e) => {
-                    this.makeOffer(e, auctionId);
-                });
-
             } catch (error) {
                 console.error('Error loading offerta:', error);
             }
@@ -484,7 +399,7 @@
                 <div class="aste-container">
                     <div class="aste-header">
                         <h2>Dettaglio Asta #${auctionId}</h2>
-                        <button class="btn-homepage" id="back-to-vendo">
+                        <button class="btn-homepage" onclick="app.showSection('vendo')">
                             ← Torna a Vendo
                         </button>
                     </div>
@@ -526,7 +441,7 @@
 
                             ${asta.state === 'attiva' ? `
                                 <div class="asta-actions">
-                                    <button id="close-auction-btn" class="btn-close-auction" data-auction-id="${asta.id}">
+                                    <button onclick="app.closeAuction(${asta.id})" class="btn-close-auction">
                                         Chiudi Asta
                                     </button>
                                 </div>
@@ -562,20 +477,6 @@
                     </div>
                 </div>
             `;
-
-                // Setup listeners
-                document.getElementById('back-to-vendo').addEventListener('click', () => {
-                    this.showSection('vendo');
-                });
-
-                // Close auction listener (solo se l'asta è attiva)
-                const closeBtn = document.getElementById('close-auction-btn');
-                if (closeBtn) {
-                    closeBtn.addEventListener('click', () => {
-                        this.closeAuction(parseInt(closeBtn.dataset.auctionId));
-                    });
-                }
-
             } catch (error) {
                 console.error('Error loading dettaglio:', error);
             }
@@ -734,16 +635,10 @@
                 document.getElementById('aste-title').textContent = 'Risultati Ricerca';
                 document.getElementById('auctions-list').innerHTML = '<div class="loading">Ricerca in corso...</div>';
 
-                const response = await ApiManager.get(`Acquisto?search=${encodeURIComponent(keyword)}`);
+                const response = await ApiManager.get(`Acquisto?keyWord=${encodeURIComponent(keyword)}`);
 
-                if (response.success) {
-                    if (response.aste && response.aste.length > 0) {
-                        this.displayAuctions(response.aste);
-                    } else {
-                        document.getElementById('auctions-list').innerHTML =
-                            '<div class="no-aste-message"><h3>Nessuna asta trovata</h3></div>';
-                    }
-
+                if (response.success && response.aste) {
+                    this.displayAuctions(response.aste);
                     if (response.error) {
                         this.showMessage(response.error, 'info');
                     }
@@ -761,10 +656,13 @@
 
         async loadVisitedAuctions(auctionIds) {
             try {
+                // Usa la nuova servlet per caricare tutte le aste visitate in una sola chiamata
                 const response = await ApiManager.post('AsteVisitate', {'ids[]': auctionIds});
+
                 if (response.success && response.aste && response.aste.length > 0) {
                     this.displayAuctions(response.aste);
                 } else {
+                    // Se non ci sono aste attive tra quelle visitate
                     document.getElementById('aste-title').textContent = 'Aste Disponibili';
                     document.getElementById('auctions-list').innerHTML =
                         '<div class="no-aste-message"><h3>Le aste visitate sono terminate. Cerca nuove aste!</h3></div>';
@@ -823,8 +721,6 @@
                 if (response.success) {
                     this.showMessage('Articolo creato con successo', 'success');
                     event.target.reset();
-                    // Ricarica sia le aste che gli articoli per aggiornare la sezione vendo
-                    await this.loadUserAuctions();
                     await this.loadUserArticles();
                 } else {
                     this.showMessage(response.message || 'Errore nella creazione', 'error');
@@ -945,7 +841,7 @@
                             <td class="min-bid">€${auction.minBid}</td>
                             <td class="date">${auction.timeLeft || 'N/A'}</td>
                             <td class="actions">
-                                <button class="btn-dettaglio auction-detail-btn" data-auction-id="${auction.id}">
+                                <button class="btn-dettaglio" onclick="app.showOffertaDetail(${auction.id})">
                                     Dettagli
                                 </button>
                             </td>
@@ -954,14 +850,6 @@
                 </tbody>
             </table>
         `;
-
-            // Aggiungi event listeners per i pulsanti dettaglio
-            document.querySelectorAll('.auction-detail-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const auctionId = parseInt(e.target.dataset.auctionId);
-                    this.showOffertaDetail(auctionId);
-                });
-            });
 
             countElement.textContent = `${auctions.length} aste`;
         },
@@ -998,7 +886,7 @@
                             <td class="min-bid">€${award.bid}</td>
                             <td class="date">${new Date(award.date).toLocaleString('it-IT')}</td>
                             <td class="actions">
-                                <button class="btn-dettaglio award-detail-btn" data-auction-id="${award.idAsta}">
+                                <button class="btn-dettaglio" onclick="app.showOffertaDetail(${award.idAsta})">
                                     Dettagli
                                 </button>
                             </td>
@@ -1007,14 +895,6 @@
                 </tbody>
             </table>
         `;
-
-            // Aggiungi event listeners per i pulsanti dettaglio
-            document.querySelectorAll('.award-detail-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const auctionId = parseInt(e.target.dataset.auctionId);
-                    this.showOffertaDetail(auctionId);
-                });
-            });
 
             countElement.textContent = `${awards.length} aggiudicazioni`;
         },
@@ -1056,7 +936,7 @@
                                 <td class="min-bid">€${auction.minBid}</td>
                                 <td class="date">${auction.timeLeft || 'N/A'}</td>
                                 <td class="actions">
-                                    <button class="btn-dettaglio open-auction-detail-btn" data-auction-id="${auction.id}">
+                                    <button class="btn-dettaglio" onclick="app.showDettaglioAsta(${auction.id})">
                                         Gestisci
                                     </button>
                                 </td>
@@ -1066,14 +946,6 @@
                 </table>
             `;
                 openCount.textContent = `${openAuctions.length} aste`;
-
-                // Aggiungi event listeners per aste aperte
-                document.querySelectorAll('.open-auction-detail-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const auctionId = parseInt(e.target.dataset.auctionId);
-                        this.showDettaglioAsta(auctionId);
-                    });
-                });
             }
 
             // Aste chiuse
@@ -1109,7 +981,7 @@
                                 <td class="min-bid">€${auction.minBid}</td>
                                 <td class="date">${new Date(auction.date).toLocaleDateString('it-IT')}</td>
                                 <td class="actions">
-                                    <button class="btn-dettaglio closed-auction-detail-btn" data-auction-id="${auction.id}">
+                                    <button class="btn-dettaglio" onclick="app.showDettaglioAsta(${auction.id})">
                                         Risultati
                                     </button>
                                 </td>
@@ -1119,14 +991,6 @@
                 </table>
             `;
                 closedCount.textContent = `${closedAuctions.length} aste`;
-
-                // Aggiungi event listeners per aste chiuse
-                document.querySelectorAll('.closed-auction-detail-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const auctionId = parseInt(e.target.dataset.auctionId);
-                        this.showDettaglioAsta(auctionId);
-                    });
-                });
             }
         },
 
@@ -1164,7 +1028,141 @@
     };
 
 // ===== INIZIALIZZAZIONE =====
-    document.addEventListener('DOMContentLoaded', function () {
-        app.init();
+    window.addEventListener('DOMContentLoaded', function () {
+        const userData = UserDataManager.getUserData();
+
+        // Determina quale sezione mostrare
+        if (userData.isFirstTime) {
+            app.showSection('acquisto');
+        } else if (userData.lastAction === 'auction_created') {
+            app.showSection('vendo');
+        } else {
+            app.showSection('acquisto');
+        }
     });
-})
+
+// ===== STILI AGGIUNTIVI =====
+    const style = document.createElement('style');
+    style.textContent = `
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+
+    .active {
+        background-color: #4a90e2 !important;
+        color: white !important;
+    }
+
+    .success {
+        background-color: #d4edda !important;
+        color: #155724 !important;
+        border: 1px solid #c3e6cb !important;
+    }
+
+    .winner-section {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 5px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .winner-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: white;
+        border-radius: 5px;
+        margin-top: 1rem;
+    }
+
+    .winner-info h4, .winning-bid h4 {
+        margin: 0 0 0.5rem 0;
+        color: #333;
+    }
+
+    .winner-name {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+
+    .winning-amount {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #27ae60;
+    }
+
+    .btn-close-auction {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        margin-top: 1.5rem;
+        width: 100%;
+    }
+
+    .btn-close-auction:hover {
+        background-color: #c82333;
+    }
+
+    .winning-row {
+        background-color: #fff3cd;
+        font-weight: bold;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 3px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .status-winner {
+        background-color: #ffc107;
+        color: #000;
+    }
+
+    .status-leading {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .status-normal {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .asta-actions {
+        margin-top: 2rem;
+        text-align: center;
+    }
+
+    .main-content {
+        display: flex;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .asta-details-container {
+        flex: 1;
+    }
+
+    .offerte-container {
+        flex: 1;
+    }
+
+    @media (max-width: 768px) {
+        .main-content {
+            flex-direction: column;
+        }
+    }
+`;
+    document.head.appendChild(style);
+//})

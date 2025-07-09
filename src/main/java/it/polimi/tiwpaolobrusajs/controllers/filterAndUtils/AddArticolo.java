@@ -77,7 +77,8 @@ public class AddArticolo extends HttpServlet {
             return;
         }
         JsonObject jsonResponse = new JsonObject();
-        jsonResponse.addProperty("success", true); //ricarica la pagina
+        jsonResponse.addProperty("success", true);
+        response.getWriter().write(gson.toJson(jsonResponse));
     }
 
     public void destroy() {

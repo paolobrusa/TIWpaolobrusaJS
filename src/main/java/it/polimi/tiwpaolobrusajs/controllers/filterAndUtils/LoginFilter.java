@@ -13,7 +13,7 @@ public class LoginFilter implements Filter {
 
     private static final String[] paths = {"/Homepage", "/Vendo", "/css/aste.css",
             "/css/homepage.css", "/Logout", "/Dettaglio", "/css/dettaglioasta.css", "/AddArticolo",
-            "/CreateAsta", "/Acquisto", "/css/acquisto.css", "/Offerta", "/css/offerta.css", "/scripts/prova1.js", "/css/style.css"};
+            "/CreateAsta", "/Acquisto", "/css/acquisto.css", "/Offerta", "/css/offerta.css", "/scripts/prova3.js", "/css/style.css"};
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {

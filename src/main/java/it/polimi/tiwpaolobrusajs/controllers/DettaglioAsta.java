@@ -1,6 +1,7 @@
 package it.polimi.tiwpaolobrusajs.controllers;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import it.polimi.tiwpaolobrusajs.beans.*;
 import it.polimi.tiwpaolobrusajs.dao.ArticoloDAO;
@@ -58,7 +59,7 @@ public class DettaglioAsta extends HttpServlet {
 //            request.getSession().removeAttribute("errorMessage");
 //            request.setAttribute("errorMessage", errorMessage);
 //        }
-        Gson gson = new Gson();
+        Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
         String id = request.getParameter("idasta");
         if (id == null) {
             JsonObject jsonResponse = new JsonObject();
@@ -108,6 +109,7 @@ public class DettaglioAsta extends HttpServlet {
             Offerta winner = null;
             winner = o.stream().max(Comparator.comparing(Offerta::getBid)).orElse(null);
             JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", true);
             jsonResponse.add("asta", gson.toJsonTree(asta));
             jsonResponse.add("offerte", gson.toJsonTree(o));
             jsonResponse.add("articoli", gson.toJsonTree(a));
