@@ -30,7 +30,6 @@ public class Acquisto extends HttpServlet {
     @Serial
     private static final long serialVersionUID = 1L;
     private Connection con;
-    RequestDispatcher dispatcher = null;
 
     public Acquisto() {
         super();

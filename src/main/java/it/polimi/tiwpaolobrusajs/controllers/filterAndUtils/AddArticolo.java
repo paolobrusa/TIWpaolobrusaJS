@@ -1,5 +1,7 @@
 package it.polimi.tiwpaolobrusajs.controllers.filterAndUtils;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import it.polimi.tiwpaolobrusajs.dao.ArticoloDAO;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
@@ -43,29 +45,39 @@ public class AddArticolo extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.sendRedirect(request.getContextPath() + "/Vendo");
+        Gson gson = new Gson();
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", false);
+        jsonResponse.add("message", gson.toJsonTree("Get non supportato"));
+        response.getWriter().write(gson.toJson(jsonResponse));
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Gson gson = new Gson();
         String n = request.getParameter("nome");
         String d = request.getParameter("descrizione");
         String o = request.getSession().getAttribute("user").toString();
         String path = request.getParameter("path");
         String p = request.getParameter("prezzo");
         if (n == null || d == null || o == null || path == null || p == null) {
-            request.getSession().setAttribute("errorMessage", "Parametri non validi");
-            response.sendRedirect(request.getContextPath() + "/Vendo");
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Parametri non validi"));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         ArticoloDAO aDAO = new ArticoloDAO(con);
         try {
-            aDAO.addArticolo(n, d, o, path, Integer.parseInt(p));
+            aDAO.addArticolo(n, d, o, path, Integer.parseInt(p)); //ERRORE PARSING QUI DENTRO NO BUONO
         } catch (SQLException e) {
-            request.getSession().setAttribute("errorMessage", e.getCause().getMessage());
-            response.sendRedirect(request.getContextPath() + "/Vendo");
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
-        response.sendRedirect(request.getContextPath() + "/Vendo");
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", true); //ricarica la pagina
     }
 
     public void destroy() {

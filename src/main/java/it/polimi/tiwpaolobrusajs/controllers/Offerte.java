@@ -1,5 +1,7 @@
 package it.polimi.tiwpaolobrusajs.controllers;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import it.polimi.tiwpaolobrusajs.beans.Articolo;
 import it.polimi.tiwpaolobrusajs.beans.Offerta;
 import it.polimi.tiwpaolobrusajs.dao.ArticoloDAO;
@@ -49,17 +51,18 @@ public class Offerte extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
-        if (errorMessage != null) {
-            request.getSession().removeAttribute("errorMessage");
-            request.setAttribute("errorMessage", errorMessage);
-        }
+//        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
+//        if (errorMessage != null) {
+//            request.getSession().removeAttribute("errorMessage");
+//            request.setAttribute("errorMessage", errorMessage);
+//        }
+        Gson gson = new Gson();
         String id = request.getParameter("idasta");
         if (id == null) {
-            request.setAttribute("errorMessage", "Errore imprevisto, assicurati di aver selezionato un asta");
-            String path = "WEB-INF/offerta.jsp";
-            dispatcher = request.getRequestDispatcher(path);
-            dispatcher.forward(request, response);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Errore imprevisto, assicurati di aver selezionato un asta"));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         int idasta = 0;
@@ -67,10 +70,10 @@ public class Offerte extends HttpServlet {
             idasta = Integer.parseInt(id);
         }
         catch(NumberFormatException e){
-            request.setAttribute("errorMessage", e.getMessage());
-            String path = "WEB-INF/offerta.jsp";
-            dispatcher = request.getRequestDispatcher(path);
-            dispatcher.forward(request, response);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         ArticoloDAO articoloDAO = new ArticoloDAO(con);
@@ -81,25 +84,28 @@ public class Offerte extends HttpServlet {
             articoli = articoloDAO.getArticoliByAsta(idasta);
             offerta = offertaDAO.getOfferta(idasta);
         } catch (SQLException e) {
-            request.setAttribute("errorMessage", e.getMessage());
-            String path = "WEB-INF/offerta.jsp";
-            dispatcher = request.getRequestDispatcher(path);
-            dispatcher.forward(request, response);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
-        request.setAttribute("articoli", articoli);
-        request.setAttribute("offerte", offerta);
-        String path = "WEB-INF/offerta.jsp";
-        dispatcher = request.getRequestDispatcher(path);
-        dispatcher.forward(request, response);
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", true);
+        jsonResponse.add("articoli", gson.toJsonTree(articoli));
+        jsonResponse.add("offerta", gson.toJsonTree(offerta));
+        response.getWriter().write(gson.toJson(jsonResponse));
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Gson gson = new Gson();
         String id = request.getParameter("idasta");
         String offerta = request.getParameter("offertaprezzo");
         if (id == null || offerta == null) {
-            request.getSession().setAttribute("errorMessage", "Un parametro è null, non è accettato");
-            response.sendRedirect(request.getContextPath() + "/Offerta");
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Un parametro è null, non è accettato"));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         int idasta = 0, offertaprezzo = 0;
@@ -108,18 +114,24 @@ public class Offerte extends HttpServlet {
             offertaprezzo = Integer.parseInt(offerta);
         }
         catch(NumberFormatException e){
-            request.getSession().setAttribute("errorMessage", "Formato numerico non valido");
-            response.sendRedirect(request.getContextPath() + "/Offerta?idasta=" + idasta);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Formato numerico non valido"));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         OffertaDAO oDao = new OffertaDAO(con);
         try {
             oDao.insertOfferta(request.getSession().getAttribute("user").toString(), offertaprezzo, idasta);
         } catch (SQLException e) {
-            request.getSession().setAttribute("errorMessage", e.getMessage());
-            response.sendRedirect(request.getContextPath() + "/Offerta?idasta=" + idasta);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
-        response.sendRedirect(request.getContextPath() + "/Offerta?idasta=" + idasta);
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", true);
+        response.getWriter().write(gson.toJson(jsonResponse)); //Ricarica la pagina con la nuova offerta (chiamata ajax)
     }
 }

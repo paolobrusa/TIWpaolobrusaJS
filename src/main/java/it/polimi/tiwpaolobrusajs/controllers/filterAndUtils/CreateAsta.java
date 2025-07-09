@@ -1,5 +1,7 @@
 package it.polimi.tiwpaolobrusajs.controllers.filterAndUtils;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import it.polimi.tiwpaolobrusajs.beans.Articolo;
 import it.polimi.tiwpaolobrusajs.dao.ArticoloDAO;
 import it.polimi.tiwpaolobrusajs.dao.AstaDAO;
@@ -49,14 +51,21 @@ public class CreateAsta extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.sendRedirect(request.getContextPath() + "/Vendo");
+        Gson gson = new Gson();
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", false);
+        jsonResponse.add("message", gson.toJsonTree("Get non supportato"));
+        response.getWriter().write(gson.toJson(jsonResponse));
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Gson gson = new Gson();
         String[] c = request.getParameterValues("codice");
         if(c == null || c.length == 0){
-            request.getSession().setAttribute("errorMessage", "Devi selezionare almeno 1 articolo");
-            response.sendRedirect(request.getContextPath() + "/Vendo");
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Devi selezionare almeno 1 articolo"));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         List<Integer> cods = new ArrayList<>();
@@ -64,8 +73,10 @@ public class CreateAsta extends HttpServlet {
             try {
                 cods.add(Integer.parseInt(s));
             } catch (Exception e) {
-                request.getSession().setAttribute("errorMessage", e.getCause().getMessage());
-                response.sendRedirect(request.getContextPath() + "/Vendo");
+                JsonObject jsonResponse = new JsonObject();
+                jsonResponse.addProperty("success", false);
+                jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+                response.getWriter().write(gson.toJson(jsonResponse));
                 return;
             }
         }
@@ -74,8 +85,10 @@ public class CreateAsta extends HttpServlet {
         try {
             articoli = aDao.getArticoli(cods);
         } catch (SQLException e) {
-            request.getSession().setAttribute("errorMessage", e.getCause().getMessage());
-            response.sendRedirect(request.getContextPath() + "/Vendo");
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         AstaDAO aDao2 = new AstaDAO(con);
@@ -83,17 +96,23 @@ public class CreateAsta extends HttpServlet {
         try {
             idAsta = aDao2.addAsta(articoli.stream().mapToInt(Articolo::getPrice).sum(), Integer.parseInt(request.getParameter("minBid")), LocalDateTime.parse(request.getParameter("date"), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")));
         } catch (SQLException e) {
-            request.getSession().setAttribute("errorMessage", e.getCause().getMessage());
-            response.sendRedirect(request.getContextPath() + "/Vendo");
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         try {
             aDao2.addArticoliAsta(idAsta, cods);
         } catch (SQLException e) {
-            request.getSession().setAttribute("errorMessage", e.getCause().getMessage());
-            response.sendRedirect(request.getContextPath() + "/Vendo");
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
-        response.sendRedirect(request.getContextPath() + "/Vendo");
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", true); //ricarica la pagina
+        response.getWriter().write(gson.toJson(jsonResponse));
     }
 }

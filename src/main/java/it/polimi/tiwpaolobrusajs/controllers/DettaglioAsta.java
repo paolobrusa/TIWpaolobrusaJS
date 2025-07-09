@@ -1,5 +1,7 @@
 package it.polimi.tiwpaolobrusajs.controllers;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import it.polimi.tiwpaolobrusajs.beans.*;
 import it.polimi.tiwpaolobrusajs.dao.ArticoloDAO;
 import it.polimi.tiwpaolobrusajs.dao.AstaDAO;
@@ -51,17 +53,18 @@ public class DettaglioAsta extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
-        if (errorMessage != null) {
-            request.getSession().removeAttribute("errorMessage");
-            request.setAttribute("errorMessage", errorMessage);
-        }
+//        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
+//        if (errorMessage != null) {
+//            request.getSession().removeAttribute("errorMessage");
+//            request.setAttribute("errorMessage", errorMessage);
+//        }
+        Gson gson = new Gson();
         String id = request.getParameter("idasta");
         if (id == null) {
-            request.setAttribute("errorMessage", "Errore imprevisto, assicurati di aver selezionato un asta");
-            String path = "WEB-INF/dettaglioAsta.jsp";
-            dispatcher = request.getRequestDispatcher(path);
-            dispatcher.forward(request, response);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Errore imprevisto, assicurati di aver selezionato un asta"));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         int idasta = 0;
@@ -69,10 +72,10 @@ public class DettaglioAsta extends HttpServlet {
             idasta = Integer.parseInt(id);
         }
         catch(NumberFormatException e){
-            request.setAttribute("errorMessage", e.getMessage());
-            String path = "WEB-INF/dettaglioAsta.jsp";
-            dispatcher = request.getRequestDispatcher(path);
-            dispatcher.forward(request, response);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         AstaDAO aDao = new AstaDAO(con);
@@ -86,49 +89,48 @@ public class DettaglioAsta extends HttpServlet {
             o = oDao.getOfferta(idasta);
             a = arDao.getArticoliByAsta(idasta);
         } catch (SQLException e) {
-            request.setAttribute("errorMessage", e.getMessage());
-            String path = "WEB-INF/dettaglioAsta.jsp";
-            dispatcher = request.getRequestDispatcher(path);
-            dispatcher.forward(request, response);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         if(asta != null && asta.getState() == State.attiva){
-            String path = "WEB-INF/dettaglioAsta.jsp";
-            request.setAttribute("asta", asta);
-            request.setAttribute("offerte", o);
-            request.setAttribute("articoli", a);
-            dispatcher = request.getRequestDispatcher(path);
-            dispatcher.forward(request, response);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", true);
+            jsonResponse.add("asta", gson.toJsonTree(asta));
+            jsonResponse.add("offerte", gson.toJsonTree(o));
+            jsonResponse.add("articoli", gson.toJsonTree(a));
+            response.getWriter().write(gson.toJson(jsonResponse));
         }
         else if(asta != null && asta.getState() == State.chiusa){
             UtenteDAO uDao = new UtenteDAO(con);
             Offerta winner = null;
             winner = o.stream().max(Comparator.comparing(Offerta::getBid)).orElse(null);
-            request.setAttribute("asta", asta);
-            request.setAttribute("offerte", o);
-            request.setAttribute("articoli", a);
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.add("asta", gson.toJsonTree(asta));
+            jsonResponse.add("offerte", gson.toJsonTree(o));
+            jsonResponse.add("articoli", gson.toJsonTree(a));
             Utente u = null;
             if (winner != null) {
                 try {
                     u = uDao.getWinner(winner.getUsnUser());
                 } catch (SQLException e) {
                     e.printStackTrace();
-                    request.setAttribute("errorMessage", "Non c'è l'aggiudicatario");
-                    String path = "WEB-INF/dettaglioAsta.jsp";
-                    dispatcher = request.getRequestDispatcher(path);
-                    dispatcher.forward(request, response);
+                    jsonResponse.addProperty("success", false);
+                    jsonResponse.add("message", gson.toJsonTree("Non c'è l'aggiudicatario"));
+                    response.getWriter().write(gson.toJson(jsonResponse));
                     return;
                 }
-                request.setAttribute("utente", u);
+                jsonResponse.add("utente", gson.toJsonTree(u));
             }
-            request.setAttribute("offertaVincente", winner);
-            String path = "WEB-INF/dettaglioAsta.jsp";
-            dispatcher = request.getRequestDispatcher(path);
-            dispatcher.forward(request, response);
+            jsonResponse.add("offertaVincente", gson.toJsonTree(winner));
+            response.getWriter().write(gson.toJson(jsonResponse));
         }
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Gson gson = new Gson();
         String idAsta = request.getParameter("idAsta");
         int idasta = 0;
         if (idAsta == null) return;
@@ -136,19 +138,25 @@ public class DettaglioAsta extends HttpServlet {
             idasta = Integer.parseInt(idAsta);
         }
         catch(NumberFormatException e){
-            request.getSession().setAttribute("errorMessage", "Formato id non valido");
-            response.sendRedirect(request.getContextPath() + "/Dettaglio");
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Formato id non valido"));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
         AstaDAO astaDAO = new AstaDAO(con);
         try {
             astaDAO.closeState(idasta);
         } catch (SQLException e) {
-            request.getSession().setAttribute("errorMessage", e.getMessage());
-            response.sendRedirect(request.getContextPath() + "/Dettaglio");
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
-        response.sendRedirect(request.getContextPath() + "/Dettaglio?idasta=" + idasta);
+        JsonObject jsonResponse = new JsonObject();
+        jsonResponse.addProperty("success", true);//qua bisogna riaggiornare la pagina js
+        response.getWriter().write(gson.toJson(jsonResponse));
     }
 
     public void destroy() {
