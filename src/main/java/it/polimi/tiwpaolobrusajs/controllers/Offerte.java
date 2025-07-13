@@ -5,7 +5,9 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import it.polimi.tiwpaolobrusajs.beans.Articolo;
 import it.polimi.tiwpaolobrusajs.beans.Offerta;
+import it.polimi.tiwpaolobrusajs.beans.State;
 import it.polimi.tiwpaolobrusajs.dao.ArticoloDAO;
+import it.polimi.tiwpaolobrusajs.dao.AstaDAO;
 import it.polimi.tiwpaolobrusajs.dao.OffertaDAO;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletContext;
@@ -20,6 +22,7 @@ import java.io.Serial;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Comparator;
 import java.util.List;
 
 @WebServlet("/Offerta")
@@ -77,11 +80,15 @@ public class Offerte extends HttpServlet {
             response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
+        AstaDAO astaDAO = new AstaDAO(con);
         ArticoloDAO articoloDAO = new ArticoloDAO(con);
         OffertaDAO offertaDAO = new OffertaDAO(con);
         List<Articolo> articoli;
         List<Offerta> offerta;
+        State s = null;
+        String user = request.getSession().getAttribute("user").toString();
         try {
+            s = astaDAO.getState(idasta, user);
             articoli = articoloDAO.getArticoliByAsta(idasta);
             offerta = offertaDAO.getOfferta(idasta);
         } catch (SQLException e) {
@@ -90,6 +97,31 @@ public class Offerte extends HttpServlet {
             jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
             response.getWriter().write(gson.toJson(jsonResponse));
             return;
+        }
+        if(articoli.isEmpty()){
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Errore caricamento articoli, assicurati di aver selezionato un asta"));
+            response.getWriter().write(gson.toJson(jsonResponse));
+            return;
+        }
+        if(s == null){
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Asta tua o non esistente"));
+            response.getWriter().write(gson.toJson(jsonResponse));
+            return;
+        }
+        if(s == State.chiusa){
+            Offerta winner = null;
+            winner = offerta.stream().max(Comparator.comparing(Offerta::getBid)).orElse(null);
+            if(winner == null || !winner.getUsnUser().equals(user)){
+                JsonObject jsonResponse = new JsonObject();
+                jsonResponse.addProperty("success", false);
+                jsonResponse.add("message", gson.toJsonTree("Asta chiusa non aggiudicata a te!"));
+                response.getWriter().write(gson.toJson(jsonResponse));
+                return;
+            }
         }
         JsonObject jsonResponse = new JsonObject();
         jsonResponse.addProperty("success", true);
@@ -118,6 +150,13 @@ public class Offerte extends HttpServlet {
             JsonObject jsonResponse = new JsonObject();
             jsonResponse.addProperty("success", false);
             jsonResponse.add("message", gson.toJsonTree("Formato numerico non valido"));
+            response.getWriter().write(gson.toJson(jsonResponse));
+            return;
+        }
+        if(offertaprezzo <= 0){
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("L'offerta deve essere positiva"));
             response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }

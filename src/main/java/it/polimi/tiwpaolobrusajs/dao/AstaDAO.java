@@ -7,6 +7,7 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class AstaDAO {
     private final Connection connection;
@@ -15,7 +16,80 @@ public class AstaDAO {
         this.connection = connection;
     }
 
-    public Asta getState(int id, String user) throws SQLException {
+    public List<Asta> getAsteByIds(List<Integer> Ids) throws SQLException {
+        List<Asta> aste = new ArrayList<>();
+        String placeholders = Ids.stream()
+                .map(i -> "?")
+                .collect(Collectors.joining(","));
+        String query = "SELECT * FROM Asta WHERE id IN (" + placeholders + ") AND stato = 'attiva' AND scadenza > now()";
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try{
+            ps = connection.prepareStatement(query);
+            for (int i = 0; i < Ids.size(); i++) {
+                ps.setInt(i + 1, Ids.get(i));
+            }
+            rs = ps.executeQuery();
+            Asta asta;
+            while(rs.next()) {
+                asta = new Asta(rs.getInt("id"), rs.getInt("prezzoiniziale"), rs.getInt("rialzomin"), rs.getDate("scadenza"), State.valueOf(rs.getString("stato")));
+                aste.add(asta);
+            }
+        }
+        catch (SQLException e){
+            throw new SQLException("Asta not exist");
+        }
+        finally {
+            try{
+                if(rs != null) rs.close();
+            }catch (SQLException e){
+                throw new SQLException("Error closing resultSet");
+            }
+            try{
+                if(ps != null) ps.close();
+            }catch (SQLException e){
+                throw new SQLException("Error closing statement");
+            }
+        }
+        return aste;
+    }
+
+    public State getState(int id, String user) throws SQLException {
+        String query = "SELECT stato FROM Asta WHERE id = ? AND EXISTS (SELECT 1 FROM articolilista JOIN articolo ON codarticolo = codice WHERE proprietario <> ? AND idasta = id)";
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        State s = null;
+        try{
+            ps = connection.prepareStatement(query);
+            ps.setInt(1, id);
+            ps.setString(2, user);
+            rs = ps.executeQuery();
+            if(rs.next()){
+                s = State.valueOf(rs.getString("stato"));
+            }
+//            else{
+//                throw new SQLException("Asta not found");
+//            }
+        }
+        catch(SQLException e){
+            throw new SQLException("Asta not exist");
+        }
+        finally {
+            try{
+                if(rs != null) rs.close();
+            }catch (SQLException e){
+                throw new SQLException("Error closing resultSet");
+            }
+            try{
+                if(ps != null) ps.close();
+            }catch (SQLException e){
+                throw new SQLException("Error closing statement");
+            }
+        }
+        return s;
+    }
+
+    public Asta getAsta(int id, String user) throws SQLException {
         String query = "SELECT DISTINCT id, prezzoiniziale, rialzomin, scadenza, stato FROM Asta JOIN articolilista ON id = idasta JOIN articolo ON codarticolo = codice WHERE id = ? AND proprietario = ?";
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -107,7 +181,6 @@ public class AstaDAO {
             else throw new SQLException("Can't add Asta");
         }
         catch (SQLException e) {
-            e.printStackTrace();
             throw new SQLException("Can't add Asta");
         }
         finally {
@@ -126,20 +199,23 @@ public class AstaDAO {
         return idAsta;
     }
 
-    public void addArticoliAsta(int idAsta, List<Integer> cods) throws SQLException {
-        String query = "INSERT into articolilista (idasta, codarticolo) values (?, ?)";
+    public void addArticoliAsta(int idAsta, List<Integer> cods, String user) throws SQLException {
+        String query = "INSERT into articolilista (idasta, codarticolo) SELECT ?, ? WHERE EXISTS (SELECT 1 FROM articolo WHERE proprietario = ? AND codice = ?) AND NOT EXISTS (SELECT 1 FROM articolilista WHERE idasta = ? AND codarticolo = ?)";
         PreparedStatement ps = null;
         try{
             ps = connection.prepareStatement(query);
             for (Integer codArt : cods) {
                 ps.setInt(1, idAsta);
                 ps.setInt(2, codArt);
-                ps.addBatch();
+                ps.setString(3, user);
+                ps.setInt(4, codArt);
+                ps.setInt(5, idAsta);
+                ps.setInt(6, codArt);
+                ps.executeUpdate();
             }
-            ps.executeBatch();
         }
         catch (SQLException e) {
-            throw new SQLException("Can't add Articoli"); //QUI MANCA RIMOZIONE ULTIMA ASTA DATO CHE SE FALLISCE L'ASTA NON DEVE ESISTERE
+            throw new SQLException("Can't add Articoli");
         }
         finally {
             try{
@@ -151,17 +227,20 @@ public class AstaDAO {
         }
     }
 
-    public void closeState(int idAsta) throws SQLException {
-        String query = "UPDATE Asta SET stato = ? WHERE id = ?";
+    public void closeState(int idAsta, String user) throws SQLException {
+        String query = "UPDATE Asta SET stato = ? WHERE id = ? AND EXISTS (SELECT 1 FROM articolilista JOIN articolo ON codarticolo = codice WHERE proprietario = ? AND idasta = id) AND scadenza<NOW()";
         PreparedStatement ps = null;
         try{
             ps = connection.prepareStatement(query);
             ps.setString(1, State.chiusa.toString());
             ps.setInt(2, idAsta);
-            ps.executeUpdate();
+            ps.setString(3, user);
+            int i = ps.executeUpdate();
+            if(i == 0)
+                throw new SQLException("Non puoi chiudere l'asta");
         }
         catch (SQLException e) {
-            throw new SQLException("Can't close asta");
+            throw new SQLException(e);
         }
         finally {
             try{

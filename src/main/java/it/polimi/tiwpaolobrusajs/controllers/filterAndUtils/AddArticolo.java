@@ -9,18 +9,22 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serial;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.UUID;
 
 @WebServlet ("/AddArticolo")
 public class AddArticolo extends HttpServlet {
     @Serial
     private static final long serialVersionUID = 1L;
     private Connection con = null;
+    private static final String dir = System.getProperty("user.home") + File.separator + "TIWImage";
 
     public AddArticolo() {
         super();
@@ -57,18 +61,64 @@ public class AddArticolo extends HttpServlet {
         String n = request.getParameter("nome");
         String d = request.getParameter("descrizione");
         String o = request.getSession().getAttribute("user").toString();
-        String path = request.getParameter("path");
         String p = request.getParameter("prezzo");
-        if (n == null || d == null || o == null || path == null || p == null) {
+        if (n == null || d == null || o == null || p == null) {
             JsonObject jsonResponse = new JsonObject();
             jsonResponse.addProperty("success", false);
             jsonResponse.add("message", gson.toJsonTree("Parametri non validi"));
             response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
+        if(n.length() > 50 || d.length() > 255 || n.isEmpty() || d.isEmpty()) {
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Lunghezza attributi non valida, accorcia"));
+            response.getWriter().write(gson.toJson(jsonResponse));
+            return;
+        }
+        int prezzo;
+        try {
+            prezzo = Integer.parseInt(p);
+        }
+        catch (NumberFormatException e){
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Formato non valido"));
+            response.getWriter().write(gson.toJson(jsonResponse));
+            return;
+        }
+        if(prezzo <= 0){
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Prezzo non puo essere negativo"));
+            response.getWriter().write(gson.toJson(jsonResponse));
+            return;
+        }
+        Part image = request.getPart("immagine");
+        if(image == null || (!image.getContentType().equals("image/jpeg") && !image.getContentType().equals("image/png"))){
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Immagine non valida (png/jpeg)"));
+            response.getWriter().write(gson.toJson(jsonResponse));
+            return;
+        }
+        String path = UUID.randomUUID() + "." + image.getContentType().replace("image/", "");
+        File upload = new File(dir);
+        if (!upload.exists()) {
+            boolean a = upload.mkdir();
+            if (!a) {
+                JsonObject jsonResponse = new JsonObject();
+                jsonResponse.addProperty("success", false);
+                jsonResponse.add("message", gson.toJsonTree("Errore creazione cartella"));
+                response.getWriter().write(gson.toJson(jsonResponse));
+                return;
+            }
+        }
+        String filePath = dir + File.separator + path;
+        image.write(filePath);
         ArticoloDAO aDAO = new ArticoloDAO(con);
         try {
-            aDAO.addArticolo(n, d, o, path, Integer.parseInt(p)); //ERRORE PARSING QUI DENTRO NO BUONO
+            aDAO.addArticolo(n, d, o, path, prezzo);
         } catch (SQLException e) {
             JsonObject jsonResponse = new JsonObject();
             jsonResponse.addProperty("success", false);
@@ -80,7 +130,6 @@ public class AddArticolo extends HttpServlet {
         jsonResponse.addProperty("success", true);
         response.getWriter().write(gson.toJson(jsonResponse));
     }
-
     public void destroy() {
         if (con != null) {
             try {

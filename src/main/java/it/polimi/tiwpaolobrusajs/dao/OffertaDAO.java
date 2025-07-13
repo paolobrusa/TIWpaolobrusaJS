@@ -31,7 +31,6 @@ public class OffertaDAO {
             }
         }
         catch (SQLException e) {
-            e.printStackTrace();
             throw new SQLException("Cant't get offerta");
         }
         finally {
@@ -51,7 +50,7 @@ public class OffertaDAO {
 
     public List<Offerta> getOfferteAggiudicate(String user) throws SQLException {
         List<Offerta> offerta = new ArrayList<Offerta>();
-        String query = "SELECT usnutente, offertaprezzo, dataora, idasta FROM Offerta JOIN asta ON idasta = id WHERE stato = 'chiusa' AND usnutente = ? ORDER BY offertaprezzo DESC, dataora DESC LIMIT 1";
+        String query = "SELECT usnutente, offertaprezzo, dataora, idasta FROM Offerta o JOIN asta ON idasta = id WHERE stato = 'chiusa' AND usnutente = ? AND o.offertaprezzo = (SELECT MAX(o2.offertaprezzo) FROM Offerta o2 WHERE o2.idasta = o.idasta) ORDER BY offertaprezzo DESC, dataora DESC";
         PreparedStatement ps = null;
         ResultSet rs = null;
         try {
@@ -65,7 +64,6 @@ public class OffertaDAO {
             }
         }
         catch (SQLException e) {
-            e.printStackTrace();
             throw new SQLException("Cant't get offerta");
         }
         finally {
@@ -84,14 +82,19 @@ public class OffertaDAO {
     }
 
     public void insertOfferta(String usnutente, int offertaprezzo, int idasta) throws SQLException {
-        String query = "INSERT into offerta (usnutente, offertaprezzo, idasta, dataora) values (?, ?, ?, NOW())";
+        String query = "INSERT into offerta (usnutente, offertaprezzo, idasta, dataora) SELECT ?, ?, ?, NOW() WHERE ? >= (SELECT COALESCE(MAX(o.offertaprezzo), a.prezzoiniziale) + a.rialzomin FROM asta a LEFT JOIN offerta o ON a.id = o.idasta WHERE a.id = ? AND a.stato = 'attiva')";
         PreparedStatement ps = null;
         try{
             ps = connection.prepareStatement(query);
             ps.setString(1, usnutente);
             ps.setInt(2, offertaprezzo);
             ps.setInt(3, idasta);
-            ps.executeUpdate();
+            ps.setInt(4, offertaprezzo);
+            ps.setInt(5, idasta);
+            int i = ps.executeUpdate();
+            if (i == 0) {
+                throw new SQLException();
+            }
         }
         catch (SQLException e) {
             throw new SQLException("L offerta deve essere maggiore dell ultima offerta piu rialzomin");

@@ -49,11 +49,6 @@ public class Login extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-//        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
-//        if (errorMessage != null) {
-//            request.getSession().removeAttribute("errorMessage");
-//            request.setAttribute("errorMessage", errorMessage);
-//        }
         String path = "/index.html";
         dispatcher = request.getRequestDispatcher(path);
         dispatcher.forward(request, response);

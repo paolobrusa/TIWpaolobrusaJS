@@ -55,11 +55,6 @@ public class Vendo extends HttpServlet {
         Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-//        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
-//        if (errorMessage != null) {
-//            request.getSession().removeAttribute("errorMessage");
-//            request.setAttribute("errorMessage", errorMessage);
-//        }
         AstaDAO aDAO = new AstaDAO(con);
         ArticoloDAO artDAO = new ArticoloDAO(con);
         List<Asta> aste;

@@ -5,7 +5,6 @@ import java.util.List;
 
 public class Asta {
     private int id;
-    private List<Articolo> items;
     private int initialPrice;
     private int minBid;
     private Date date;
@@ -26,14 +25,6 @@ public class Asta {
 
     public void setId(int id) {
         this.id = id;
-    }
-
-    public List<Articolo> getItems() {
-        return items;
-    }
-
-    public void setItems(List<Articolo> items) {
-        this.items = items;
     }
 
     public int getInitialPrice() {

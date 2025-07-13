@@ -54,11 +54,6 @@ public class DettaglioAsta extends HttpServlet {
     }
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-//        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
-//        if (errorMessage != null) {
-//            request.getSession().removeAttribute("errorMessage");
-//            request.setAttribute("errorMessage", errorMessage);
-//        }
         Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
         String id = request.getParameter("idasta");
         if (id == null) {
@@ -86,7 +81,7 @@ public class DettaglioAsta extends HttpServlet {
         List<Offerta> o;
         List<Articolo> a;
         try {
-            asta = aDao.getState(idasta, request.getSession().getAttribute("user").toString());
+            asta = aDao.getAsta(idasta, request.getSession().getAttribute("user").toString());
             o = oDao.getOfferta(idasta);
             a = arDao.getArticoliByAsta(idasta);
         } catch (SQLException e) {
@@ -118,7 +113,6 @@ public class DettaglioAsta extends HttpServlet {
                 try {
                     u = uDao.getWinner(winner.getUsnUser());
                 } catch (SQLException e) {
-                    e.printStackTrace();
                     jsonResponse.addProperty("success", false);
                     jsonResponse.add("message", gson.toJsonTree("Non c'è l'aggiudicatario"));
                     response.getWriter().write(gson.toJson(jsonResponse));
@@ -146,9 +140,10 @@ public class DettaglioAsta extends HttpServlet {
             response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
+        String user = request.getSession().getAttribute("user").toString();
         AstaDAO astaDAO = new AstaDAO(con);
         try {
-            astaDAO.closeState(idasta);
+            astaDAO.closeState(idasta, user);
         } catch (SQLException e) {
             JsonObject jsonResponse = new JsonObject();
             jsonResponse.addProperty("success", false);

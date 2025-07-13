@@ -69,9 +69,19 @@ public class CreateAsta extends HttpServlet {
             return;
         }
         List<Integer> cods = new ArrayList<>();
+        int cod = 0;
         for (String s : c) {
+            try{
+                cod = Integer.parseInt(s);
+            }
+            catch(NumberFormatException e){
+                JsonObject jsonResponse = new JsonObject();
+                jsonResponse.addProperty("success", false);
+                jsonResponse.add("message", gson.toJsonTree("Codici devono essere numeri"));
+                response.getWriter().write(gson.toJson(jsonResponse));
+            }
             try {
-                cods.add(Integer.parseInt(s));
+                cods.add(cod);
             } catch (Exception e) {
                 JsonObject jsonResponse = new JsonObject();
                 jsonResponse.addProperty("success", false);
@@ -102,8 +112,9 @@ public class CreateAsta extends HttpServlet {
             response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
+        String user = request.getSession().getAttribute("user").toString();
         try {
-            aDao2.addArticoliAsta(idAsta, cods);
+            aDao2.addArticoliAsta(idAsta, cods, user);
         } catch (SQLException e) {
             JsonObject jsonResponse = new JsonObject();
             jsonResponse.addProperty("success", false);
