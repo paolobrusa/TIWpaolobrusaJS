@@ -50,7 +50,7 @@
                 <span class="section-count" id="auctions-count">0 aste</span>
             </div>
             <div id="auctions-list">
-                <div class="no-aste-message"><h3>Cerca articoli per visualizzare le aste</h3></div>
+                <!-- Il contenuto verrà popolato dinamicamente -->
             </div>
         </div>
 
@@ -106,8 +106,8 @@
                     <textarea id="article-description" name="descrizione" class="form-textarea" required placeholder="Descrizione" rows="3"></textarea>
                 </div>
                 <div class="input-group">
-                    <label for="article-path" class="input-label">Path Immagine</label>
-                    <input type="text" id="article-path" name="path" class="form-input" placeholder="URL o percorso dell'immagine">
+                    <label for="article-image" class="input-label">Immagine</label>
+                    <input type="file" id="article-image" name="immagine" class="form-input" accept="image/jpeg, image/png" placeholder="Seleziona un'immagine">
                 </div>
                 <div class="input-group">
                     <label for="article-price" class="input-label">Prezzo Base (€)</label>

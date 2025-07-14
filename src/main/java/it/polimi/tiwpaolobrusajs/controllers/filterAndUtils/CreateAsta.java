@@ -79,16 +79,9 @@ public class CreateAsta extends HttpServlet {
                 jsonResponse.addProperty("success", false);
                 jsonResponse.add("message", gson.toJsonTree("Codici devono essere numeri"));
                 response.getWriter().write(gson.toJson(jsonResponse));
-            }
-            try {
-                cods.add(cod);
-            } catch (Exception e) {
-                JsonObject jsonResponse = new JsonObject();
-                jsonResponse.addProperty("success", false);
-                jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
-                response.getWriter().write(gson.toJson(jsonResponse));
                 return;
             }
+            cods.add(cod);
         }
         ArticoloDAO aDao = new ArticoloDAO(con);
         List<Articolo> articoli;

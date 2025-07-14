@@ -266,6 +266,21 @@
                 return tr;
             },
 
+            createArticleRowWithImage: function(article) {
+                const tr = document.createElement('tr');
+                tr.className = 'asta-row';
+                tr.innerHTML = `
+                    <td class="asta-id">${escapeHtml(article.code)}</td>
+                    <td class="article-name">${escapeHtml(article.name)}</td>
+                    <td class="article-description">${escapeHtml(article.description)}</td>
+                    <td class="article-path">
+                        ${article.path ? `<img src="Image/${escapeHtml(article.path)}" alt="Errore"/>` : 'Nessuna immagine'}
+                    </td>
+                    <td class="price">${formatCurrency(article.price)}</td>
+                `;
+                return tr;
+            },
+
             createOfferRow: function(offer, index, astaState) {
                 const tr = document.createElement('tr');
                 tr.className = 'offerta-row';
@@ -441,6 +456,9 @@
             if (target.classList.contains('auction-detail-btn')) {
                 const auctionId = parseInt(target.dataset.auctionId);
                 showOffertaDetail(auctionId);
+            } else if (target.classList.contains('award-detail-btn')) {
+                const auctionId = parseInt(target.dataset.auctionId);
+                showAwardDetail(auctionId);
             } else if (target.classList.contains('open-auction-detail-btn') ||
                 target.classList.contains('closed-auction-detail-btn')) {
                 const auctionId = parseInt(target.dataset.auctionId);
@@ -478,10 +496,21 @@
 
             const userData = UserDataModule.getUserData();
 
-            // Mostra aste visitate se non è la prima volta
-            if (!userData.isFirstTime && userData.visitedAuctions.length > 0) {
+            // Mostra aste visitate se non è la prima volta e ci sono aste visitate
+            if (!userData.isFirstTime && userData.visitedAuctions && userData.visitedAuctions.length > 0) {
                 document.getElementById('aste-title').textContent = 'Aste Visitate di Recente';
                 await loadVisitedAuctions(userData.visitedAuctions);
+            } else {
+                // Mostra messaggio iniziale se è la prima volta o non ci sono aste visitate
+                document.getElementById('aste-title').textContent = 'Aste Disponibili';
+                const message = TemplateModule.createNoDataMessage(
+                    '🔍',
+                    'Cerca articoli per visualizzare le aste',
+                    'Le aste che visiterai appariranno qui'
+                );
+                document.getElementById('auctions-list').innerHTML = '';
+                document.getElementById('auctions-list').appendChild(message);
+                UIModule.updateCount('auctions-count', 0, 'aste');
             }
 
             // Carica aggiudicazioni
@@ -514,12 +543,18 @@
                 const response = await ApiModule.get(`Acquisto?search=${encodeURIComponent(keyword)}`);
 
                 if (response.success) {
-                    displayAuctions(response.aste || []);
-                    if (response.error) {
-                        UIModule.showMessage(response.error, 'info');
+                    if (response.aste && response.aste.length > 0) {
+                        displayAuctions(response.aste);
+                        if (response.error) {
+                            UIModule.showMessage(response.error, 'info');
+                        }
+                    } else {
+                        // Nessuna asta trovata
+                        displayAuctions([]);
+                        UIModule.showMessage('Nessuna asta trovata per la ricerca: "' + keyword + '"', 'info');
                     }
                 } else {
-                    UIModule.showMessage(response.error || 'Errore nella ricerca', 'error');
+                    UIModule.showMessage(response.message || response.error || 'Errore nella ricerca', 'error');
                     displayAuctions([]);
                 }
             } catch (error) {
@@ -530,21 +565,52 @@
         }
 
         async function loadVisitedAuctions(auctionIds) {
+            if (!auctionIds || auctionIds.length === 0) {
+                document.getElementById('aste-title').textContent = 'Aste Disponibili';
+                const message = TemplateModule.createNoDataMessage(
+                    '🔍',
+                    'Cerca articoli per visualizzare le aste'
+                );
+                document.getElementById('auctions-list').innerHTML = '';
+                document.getElementById('auctions-list').appendChild(message);
+                UIModule.updateCount('auctions-count', 0, 'aste');
+                return;
+            }
+
             try {
+                UIModule.showLoading('auctions-list');
                 const response = await ApiModule.post('AsteVisitate', {'ids[]': auctionIds});
+
                 if (response.success && response.aste && response.aste.length > 0) {
                     displayAuctions(response.aste);
                 } else {
+                    // Le aste visitate non esistono più o sono terminate
                     document.getElementById('aste-title').textContent = 'Aste Disponibili';
                     const message = TemplateModule.createNoDataMessage(
                         '🔍',
-                        'Le aste visitate sono terminate. Cerca nuove aste!'
+                        'Le aste visitate sono terminate',
+                        'Cerca nuove aste da visualizzare'
                     );
                     document.getElementById('auctions-list').innerHTML = '';
                     document.getElementById('auctions-list').appendChild(message);
+                    UIModule.updateCount('auctions-count', 0, 'aste');
+
+                    // Pulisci le aste visitate scadute
+                    const userData = UserDataModule.getUserData();
+                    userData.visitedAuctions = [];
+                    UserDataModule.saveUserData(userData);
                 }
             } catch (error) {
                 console.error('Error loading visited auctions:', error);
+                document.getElementById('aste-title').textContent = 'Aste Disponibili';
+                const message = TemplateModule.createNoDataMessage(
+                    '🔍',
+                    'Errore nel caricamento delle aste visitate',
+                    'Prova a cercare nuove aste'
+                );
+                document.getElementById('auctions-list').innerHTML = '';
+                document.getElementById('auctions-list').appendChild(message);
+                UIModule.updateCount('auctions-count', 0, 'aste');
             }
         }
 
@@ -599,12 +665,31 @@
 
         async function createArticle(form) {
             const formData = new FormData(form);
-            const data = Object.fromEntries(formData);
 
             try {
-                const response = await ApiModule.post('AddArticolo', data);
+                const response = await fetch('AddArticolo', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                        // Non aggiungere Content-Type per multipart/form-data
+                    }
+                });
 
-                if (response.success) {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const text = await response.text();
+                let data;
+
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    data = {success: false, message: text};
+                }
+
+                if (data.success) {
                     UIModule.showMessage('Articolo creato con successo', 'success');
                     form.reset();
                     await Promise.all([
@@ -612,7 +697,7 @@
                         loadUserArticles()
                     ]);
                 } else {
-                    UIModule.showMessage(response.message || 'Errore nella creazione', 'error');
+                    UIModule.showMessage(data.message || 'Errore nella creazione', 'error');
                 }
             } catch (error) {
                 console.error('Create article error:', error);
@@ -700,6 +785,7 @@
         }
 
         async function showOffertaDetail(auctionId) {
+            // Aggiungi l'asta alle aste visitate
             UserDataModule.addVisitedAuction(auctionId);
 
             try {
@@ -715,8 +801,12 @@
                 document.getElementById('content').appendChild(template);
 
                 // Popola i dati
-                displayArticlesInTable(response.articoli || [], 'articoli-table-container');
+                displayArticlesInTable(response.articoli || [], 'articoli-table-container', true);
                 displayOffersInTable(response.offerta || [], 'offerte-table-container', 'attiva');
+
+                // Aggiorna i contatori
+                UIModule.updateCount('articles-count', (response.articoli || []).length, 'articoli');
+                UIModule.updateCount('offers-count', (response.offerta || []).length, 'offerte');
 
                 // Setup form
                 const offerForm = document.getElementById('offer-form');
@@ -726,6 +816,42 @@
 
             } catch (error) {
                 console.error('Error loading offerta:', error);
+                UIModule.showMessage('Errore di connessione al server', 'error');
+            }
+        }
+
+        async function showAwardDetail(auctionId) {
+            // Aggiungi l'asta alle aste visitate
+            UserDataModule.addVisitedAuction(auctionId);
+
+            try {
+                const response = await ApiModule.get(`Offerta?idasta=${auctionId}`);
+
+                if (!response.success) {
+                    UIModule.showMessage(response.message || 'Errore nel caricamento', 'error');
+                    return;
+                }
+
+                const template = TemplateModule.getTemplate('template-offerta-detail');
+                document.getElementById('content').innerHTML = '';
+                document.getElementById('content').appendChild(template);
+
+                // Popola i dati
+                displayArticlesInTable(response.articoli || [], 'articoli-table-container', true);
+                displayOffersInTable(response.offerta || [], 'offerte-table-container', 'chiusa');
+
+                // Aggiorna i contatori
+                UIModule.updateCount('articles-count', (response.articoli || []).length, 'articoli');
+                UIModule.updateCount('offers-count', (response.offerta || []).length, 'offerte');
+
+                // Nascondi il form dell'offerta per le aggiudicazioni
+                const offerFormContainer = document.querySelector('.forms-container');
+                if (offerFormContainer) {
+                    offerFormContainer.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('Error loading award:', error);
                 UIModule.showMessage('Errore di connessione al server', 'error');
             }
         }
@@ -761,7 +887,7 @@
                 }
 
                 // Articoli
-                displayArticlesInTable(response.articoli || [], 'articoli-asta-container');
+                displayArticlesInTable(response.articoli || [], 'articoli-asta-container', true);
 
                 // Offerte
                 displayOffersInTable(response.offerte || [], 'offerte-dettaglio-container', asta.state);
@@ -808,7 +934,6 @@
         // Funzioni di display
         function displayAuctions(auctions) {
             const container = document.getElementById('auctions-list');
-            UIModule.updateCount('auctions-count', auctions.length, 'aste');
 
             if (!auctions || auctions.length === 0) {
                 const message = TemplateModule.createNoDataMessage(
@@ -817,8 +942,11 @@
                 );
                 container.innerHTML = '';
                 container.appendChild(message);
+                UIModule.updateCount('auctions-count', 0, 'aste');
                 return;
             }
+
+            UIModule.updateCount('auctions-count', auctions.length, 'aste');
 
             const table = document.createElement('table');
             table.className = 'aste-table';
@@ -1047,7 +1175,7 @@
             if (createBtn) createBtn.disabled = false;
         }
 
-        function displayArticlesInTable(articles, containerId) {
+        function displayArticlesInTable(articles, containerId, showImages = false) {
             const container = document.getElementById(containerId);
             if (!container) return;
 
@@ -1063,21 +1191,41 @@
 
             const table = document.createElement('table');
             table.className = 'aste-table';
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>Codice</th>
-                        <th>Nome</th>
-                        <th>Descrizione</th>
-                        <th>Prezzo</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            `;
+
+            if (showImages) {
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Codice</th>
+                            <th>Nome</th>
+                            <th>Descrizione</th>
+                            <th>Immagine</th>
+                            <th>Prezzo</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                `;
+            } else {
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Codice</th>
+                            <th>Nome</th>
+                            <th>Descrizione</th>
+                            <th>Prezzo</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                `;
+            }
 
             const tbody = table.querySelector('tbody');
             articles.forEach(article => {
-                tbody.appendChild(TemplateModule.createArticleRow(article));
+                if (showImages) {
+                    tbody.appendChild(TemplateModule.createArticleRowWithImage(article));
+                } else {
+                    tbody.appendChild(TemplateModule.createArticleRow(article));
+                }
             });
 
             container.innerHTML = '';

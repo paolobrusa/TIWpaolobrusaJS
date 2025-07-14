@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import it.polimi.tiwpaolobrusajs.dao.ArticoloDAO;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +21,7 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 @WebServlet ("/AddArticolo")
+@MultipartConfig
 public class AddArticolo extends HttpServlet {
     @Serial
     private static final long serialVersionUID = 1L;

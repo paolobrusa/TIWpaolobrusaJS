@@ -147,7 +147,7 @@ public class DettaglioAsta extends HttpServlet {
         } catch (SQLException e) {
             JsonObject jsonResponse = new JsonObject();
             jsonResponse.addProperty("success", false);
-            jsonResponse.add("message", gson.toJsonTree(e.getMessage()));
+            jsonResponse.add("message", gson.toJsonTree(e.getCause().getMessage()));
             response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
