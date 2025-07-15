@@ -86,6 +86,7 @@ public class AsteVisitate extends HttpServlet {
             }
             AstaDAO astaDAO = new AstaDAO(con);
             List<Asta> aste = astaDAO.getAsteByIds(asteIds);
+            TimeLeft.timeLeft(aste);
             jsonResponse.addProperty("success", true);
             jsonResponse.add("aste", gson.toJsonTree(aste));
             if (aste.isEmpty()) {
