@@ -30,8 +30,8 @@ public class ImageHandler extends HttpServlet {
             return;
         }
         Image image1 = ImageIO.read(image);
-        int height = 75;
-        int width = 75;
+        int height = 65;
+        int width = 65;
         image1 = image1.getScaledInstance(width, height, Image.SCALE_SMOOTH);
         BufferedImage imageb = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         imageb.getGraphics().drawImage(image1, 0, 0, null);

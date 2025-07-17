@@ -1,29 +1,43 @@
-<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HOMEPAGE</title>
-    <link rel="stylesheet" href="css/aste.css">
-    <link rel="stylesheet" href="css/acquisto.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<div class="aste-container">
+    <!-- Header principale -->
+    <div class="aste-header">
+        <h1>HOMEPAGE</h1>
+        <p id="page-subtitle">Gestisci le tue aste</p>
+    </div>
 
-<!-- Vista ACQUISTO -->
-<div id="acquisto-view" class="aste-container">
-    <header class="aste-header">
-        <h1>Acquisto</h1>
-        <p>Cerca articoli che ti interessano</p>
-    </header>
+    <!-- Barra di navigazione -->
+    <div class="section-container" style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+            <button class="btn-dettaglio" id="nav-acquisto">
+                Acquisto
+            </button>
+            <button class="btn-dettaglio" id="nav-vendo">
+                Vendo
+            </button>
+            <button class="btn-logout">
+                Logout
+            </button>
+        </div>
+    </div>
 
-    <div id="error-message" class="error-message" style="display: none;"></div>
+    <div id="message-container"></div>
+    <div id="content"></div>
+</div>
 
+<!-- Template per sezione Acquisto -->
+<template id="template-acquisto-section">
     <div class="search-section">
         <form class="search-form" id="search-form">
             <div class="search-container">
-                <label>
-                    <input type="text" name="keyWord" placeholder="Cerca nelle aste..." class="search-input" id="search-input">
-                </label>
+                <input type="text" id="search-keyword" name="search" placeholder="Cerca nelle aste..." class="search-input">
                 <button type="submit" class="search-button">Cerca</button>
             </div>
         </form>
@@ -32,74 +46,46 @@
     <div class="tables-container">
         <div class="section-container">
             <div class="section-header">
-                <h2 class="section-title aste-title">Aste Ricercate</h2>
-                <span class="section-count" id="aste-count">0 aste</span>
+                <h2 class="section-title auction-title" id="aste-title">Aste Disponibili</h2>
+                <span class="section-count" id="auctions-count">0 aste</span>
             </div>
-
-            <div id="aste-content">
-                <div class="no-aste-message">
-                    <h2>Cerca articoli per visualizzare aste corrispondenti</h2>
-                </div>
+            <div id="auctions-list">
+                <!-- Il contenuto verrà popolato dinamicamente -->
             </div>
         </div>
 
         <div class="section-container">
             <div class="section-header">
-                <h2 class="section-title aggiud-title">Aggiudicazioni</h2>
-                <span class="section-count" id="aggiud-count">0 aggiudicazioni</span>
+                <h2 class="section-title closed-title">Aggiudicazioni</h2>
+                <span class="section-count" id="awards-count">0 aggiudicazioni</span>
             </div>
-
-            <div id="aggiud-content">
-                <div class="no-aste-message">
-                    <h3>Nessuna aggiudicazione</h3>
-                    <p>Non ci sono ancora aggiudicazioni nel sistema</p>
-                </div>
+            <div id="awards-list">
+                <div class="loading">Caricamento...</div>
             </div>
         </div>
     </div>
+</template>
 
-    <div class="homepage-button-container">
-        <button id="goto-vendo-btn" class="btn-homepage">Vai a Vendo</button>
-    </div>
-</div>
-
-<!-- Vista VENDO -->
-<div id="vendo-view" class="aste-container" style="display: none;">
-    <div class="aste-header">
-        <h1>Aste</h1>
-        <p>Gestisci le tue aste</p>
-    </div>
-
-    <div id="vendo-error-message" class="error-message" style="display: none;"></div>
-
+<!-- Template per sezione Vendo -->
+<template id="template-vendo-section">
     <div class="tables-container">
         <div class="section-container">
             <div class="section-header">
                 <h2 class="section-title active-title">🟢 Aste Aperte</h2>
-                <div class="section-count" id="aste-aperte-count">0 aste</div>
+                <span class="section-count" id="open-auctions-count">0 aste</span>
             </div>
-
-            <div id="aste-aperte-content">
-                <div class="no-aste-message">
-                    <div class="no-aste-icon">🟢</div>
-                    <h3>Nessuna asta aperta</h3>
-                    <p>Non hai aste attualmente attive</p>
-                </div>
+            <div id="open-auctions-list">
+                <div class="loading">Caricamento...</div>
             </div>
         </div>
 
         <div class="section-container">
             <div class="section-header">
                 <h2 class="section-title closed-title">🔴 Aste Chiuse</h2>
-                <div class="section-count" id="aste-chiuse-count">0 aste</div>
+                <span class="section-count" id="closed-auctions-count">0 aste</span>
             </div>
-
-            <div id="aste-chiuse-content">
-                <div class="no-aste-message">
-                    <div class="no-aste-icon">🔴</div>
-                    <h3>Nessuna asta chiusa</h3>
-                    <p>Non hai ancora aste terminate</p>
-                </div>
+            <div id="closed-auctions-list">
+                <div class="loading">Caricamento...</div>
             </div>
         </div>
     </div>
@@ -110,29 +96,24 @@
                 <h2 class="form-title article-title">Crea Articolo</h2>
                 <p class="form-subtitle">Aggiungi un nuovo articolo</p>
             </div>
-
-            <form class="form-content" id="create-article-form">
+            <form id="create-article-form" class="form-content">
                 <div class="input-group">
-                    <label for="nome" class="input-label">Nome Articolo</label>
-                    <input type="text" id="nome" name="nome" class="form-input" required placeholder="Nome articolo">
+                    <label for="article-name" class="input-label">Nome Articolo</label>
+                    <input type="text" id="article-name" name="nome" class="form-input" required placeholder="Nome articolo">
                 </div>
-
                 <div class="input-group">
-                    <label for="descrizione" class="input-label">Descrizione</label>
-                    <textarea id="descrizione" name="descrizione" class="form-textarea" required placeholder="Descrizione" rows="3"></textarea>
+                    <label for="article-description" class="input-label">Descrizione</label>
+                    <textarea id="article-description" name="descrizione" class="form-textarea" required placeholder="Descrizione" rows="3"></textarea>
                 </div>
-
                 <div class="input-group">
-                    <label for="path" class="input-label">Path Immagine</label>
-                    <input type="text" id="path" name="path" class="form-input" placeholder="URL o percorso dell'immagine">
+                    <label for="article-image" class="input-label">Immagine</label>
+                    <input type="file" id="article-image" name="immagine" class="form-input" accept="image/jpeg, image/png" placeholder="Seleziona un'immagine">
                 </div>
-
                 <div class="input-group">
-                    <label for="prezzo" class="input-label">Prezzo Base (€)</label>
-                    <input type="number" id="prezzo" name="prezzo" class="form-input" step="1" min="1" required placeholder="0">
+                    <label for="article-price" class="input-label">Prezzo Base (€)</label>
+                    <input type="number" id="article-price" name="prezzo" class="form-input" step="1" min="1" required placeholder="0">
                 </div>
-
-                <button type="submit" class="btn-submit btn-article">Crea Articolo</button>
+                <button type="submit" class="btn-submit">Crea Articolo</button>
             </form>
         </div>
 
@@ -141,36 +122,130 @@
                 <h2 class="form-title auction-title">Crea Asta</h2>
                 <p class="form-subtitle">Crea una nuova asta</p>
             </div>
-
-            <form class="form-content" id="create-auction-form">
+            <form id="create-auction-form" class="form-content">
                 <div class="input-group">
                     <label class="input-label">Seleziona Articoli</label>
-                    <div class="checkbox-container" id="articoli-container">
-                        <div class="no-articles-message">
-                            <p>Nessun articolo disponibile. Crea prima un articolo.</p>
-                        </div>
+                    <div class="checkbox-container" id="articles-checkbox">
+                        <div class="loading">Caricamento articoli...</div>
                     </div>
                 </div>
-
                 <div class="input-group">
-                    <label for="minBid" class="input-label">Rilancio Minimo (€)</label>
-                    <input type="number" id="minBid" name="minBid" class="form-input" step="1" min="1" required placeholder="0">
+                    <label for="min-bid" class="input-label">Rilancio Minimo (€)</label>
+                    <input type="number" id="min-bid" name="minBid" class="form-input" step="1" min="1" required placeholder="0">
                 </div>
-
                 <div class="input-group">
-                    <label for="dataScadenza" class="input-label">Data Scadenza</label>
-                    <input type="datetime-local" id="dataScadenza" name="date" class="form-input" required step="1">
+                    <label for="auction-date" class="input-label">Data Scadenza</label>
+                    <input type="datetime-local" id="auction-date" name="date" class="form-input" required step="1">
                 </div>
-
-                <button type="submit" class="btn-submit btn-auction" id="create-auction-btn" disabled>Crea Asta</button>
+                <button type="submit" class="btn-submit" id="create-auction-btn">Crea Asta</button>
             </form>
         </div>
     </div>
+</template>
 
-    <div class="homepage-button-container">
-        <button id="goto-acquisto-btn" class="btn-homepage">Vai ad Acquisto</button>
+<!-- Template per dettaglio offerta -->
+<template id="template-offerta-detail">
+    <div class="aste-container">
+        <div class="aste-header">
+            <h2>Offerta</h2>
+            <button class="btn-homepage" id="back-to-acquisto">
+                ← Torna ad Acquisto
+            </button>
+        </div>
+
+        <div class="tables-container">
+            <div class="section-container">
+                <div class="section-header">
+                    <h2 class="section-title article-title">Articoli Disponibili</h2>
+                    <span class="section-count" id="articles-count">0 articoli</span>
+                </div>
+                <div id="articoli-table-container"></div>
+            </div>
+
+            <div class="section-container">
+                <div class="section-header">
+                    <h2 class="section-title auction-title">Offerte Ricevute</h2>
+                    <span class="section-count" id="offers-count">0 offerte</span>
+                </div>
+                <div id="offerte-table-container"></div>
+            </div>
+        </div>
+
+        <div class="forms-container">
+            <div class="form-container">
+                <div class="form-header">
+                    <h2 class="form-title auction-title">Offerta</h2>
+                    <p class="form-subtitle">Inserisci la tua offerta</p>
+                </div>
+                <form id="offer-form" class="form-content">
+                    <div class="input-group">
+                        <label for="offertaprezzo" class="input-label">Importo Offerta (€)</label>
+                        <input type="number" name="offertaprezzo" id="offertaprezzo"
+                               class="form-input" placeholder="0" step="1" min="1" required>
+                    </div>
+                    <button type="submit" class="btn-submit">Invia Offerta</button>
+                </form>
+            </div>
+        </div>
     </div>
-</div>
+</template>
+
+<!-- Template per dettaglio asta -->
+<template id="template-dettaglio-asta">
+    <div class="aste-container">
+        <div class="aste-header">
+            <h2>Dettaglio Asta</h2>
+            <button class="btn-homepage" id="back-to-vendo">
+                ← Torna a Vendo
+            </button>
+        </div>
+
+        <div class="main-content">
+            <div class="asta-details-container">
+                <div class="asta-details-header">
+                    <h2 class="asta-title">Asta <span id="asta-id"></span></h2>
+                    <div class="asta-status" id="asta-status"></div>
+                </div>
+
+                <div class="asta-info-grid">
+                    <div class="info-card">
+                        <div class="info-label">ID Asta</div>
+                        <div class="info-value asta-id" id="asta-id-value"></div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Prezzo Iniziale</div>
+                        <div class="info-value price" id="asta-price"></div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Offerta Minima</div>
+                        <div class="info-value min-bid" id="asta-minbid"></div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Data Asta</div>
+                        <div class="info-value date" id="asta-date"></div>
+                    </div>
+                </div>
+
+                <div class="asta-articles">
+                    <h3>Articoli dell'Asta</h3>
+                    <div id="articoli-asta-container"></div>
+                </div>
+
+                <div class="asta-actions" id="asta-actions"></div>
+
+                <div id="winner-section"></div>
+            </div>
+
+            <div class="offerte-container">
+                <div class="section-header">
+                    <h3 class="section-title">Lista Offerte</h3>
+                    <div class="section-count" id="offerte-count">0 offerte</div>
+                </div>
+                <div id="offerte-dettaglio-container"></div>
+            </div>
+        </div>
+    </div>
+</template>
 <script src="scripts/spa.js" charset="utf-8" defer></script>
 </body>
 </html>

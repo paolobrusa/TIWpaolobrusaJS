@@ -49,7 +49,7 @@ public class Homepage extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
         response.getWriter().println("<!DOCTYPE html>");
         response.getWriter().println("<script>window.CURRENT_USER = '" + user.replace("'", "\\'") + "';</script>");
-        String path = "/HomeProva2.html";
+        String path = "/Home.html";
         dispatcher = request.getRequestDispatcher(path);
         dispatcher.include(request, response);
     }
