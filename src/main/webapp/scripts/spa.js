@@ -1,17 +1,12 @@
 (function() {
     'use strict';
 
-    // ===== MODULO STORAGE PRIVATO =====
     const StorageModule = (function() {
-        const STORAGE_KEY_PREFIX = 'auction_user_data_';
         const EXPIRY_DAYS = 30;
-
-        // Cache in-memory come fallback
-        const memoryStorage = new Map();
 
         function isStorageAvailable() {
             try {
-                const test = '__storage_test__';
+                const test = 'storageTest';
                 localStorage.setItem(test, test);
                 localStorage.removeItem(test);
                 return true;
@@ -20,7 +15,7 @@
             }
         }
 
-        const useLocalStorage = isStorageAvailable();
+        const LSavailable = isStorageAvailable();
 
         return {
             setItem: function(key, value) {
@@ -30,29 +25,26 @@
                 };
 
                 try {
-                    if (useLocalStorage) {
+                    if (LSavailable) {
                         localStorage.setItem(key, JSON.stringify(data));
                     } else {
-                        memoryStorage.set(key, data);
+                        console.warn('localStorage non disponibile, i dati non verranno salvati');
                     }
                 } catch(e) {
                     console.warn('Storage error:', e);
-                    memoryStorage.set(key, data);
                 }
             },
 
             getItem: function(key) {
                 try {
-                    let data;
-
-                    if (useLocalStorage) {
-                        const stored = localStorage.getItem(key);
-                        if (!stored) return null;
-                        data = JSON.parse(stored);
-                    } else {
-                        data = memoryStorage.get(key);
-                        if (!data) return null;
+                    if (!LSavailable) {
+                        return null;
                     }
+
+                    const stored = localStorage.getItem(key);
+                    if (!stored) return null;
+
+                    const data = JSON.parse(stored);
 
                     // Check expiry
                     if (Date.now() > data.expiry) {
@@ -69,10 +61,9 @@
 
             removeItem: function(key) {
                 try {
-                    if (useLocalStorage) {
+                    if (LSavailable) {
                         localStorage.removeItem(key);
                     }
-                    memoryStorage.delete(key);
                 } catch(e) {
                     console.warn('Storage removal error:', e);
                 }
@@ -80,12 +71,11 @@
         };
     })();
 
-    // ===== MODULO USER DATA PRIVATO =====
     const UserDataModule = (function() {
         let currentUser = null;
 
         function getStorageKey() {
-            return StorageModule.STORAGE_KEY_PREFIX + currentUser;
+            return currentUser;
         }
 
         function createNewUserData() {
@@ -137,7 +127,6 @@
         };
     })();
 
-    // ===== MODULO API PRIVATO =====
     const ApiModule = (function() {
         async function request(endpoint, options = {}) {
             const defaultOptions = {
@@ -196,12 +185,11 @@
         };
     })();
 
-    // ===== MODULO TEMPLATE PRIVATO =====
     const TemplateModule = (function() {
         const templates = {};
 
-        // Sanitizzazione input per prevenire XSS
-        function escapeHtml(text) {
+        //prevenire XSS
+        function sanitizer(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
@@ -241,12 +229,12 @@
                 const tr = document.createElement('tr');
                 tr.className = 'asta-row';
                 tr.innerHTML = `
-                    <td class="asta-id">#${escapeHtml(auction.id)}</td>
+                    <td class="asta-id">#${sanitizer(auction.id)}</td>
                     <td class="price">${formatCurrency(auction.initialPrice)}</td>
                     <td class="min-bid">${formatCurrency(auction.minBid)}</td>
-                    <td class="date">${escapeHtml(auction.timeLeft || 'N/A')}</td>
+                    <td class="date">${sanitizer(auction.timeLeft || 'N/A')}</td>
                     <td class="actions">
-                        <button class="btn-dettaglio auction-detail-btn" data-auction-id="${escapeHtml(auction.id)}">
+                        <button class="btn-dettaglio auction-detail-btn" data-auction-id="${sanitizer(auction.id)}">
                             Dettagli
                         </button>
                     </td>
@@ -258,9 +246,9 @@
                 const tr = document.createElement('tr');
                 tr.className = 'asta-row';
                 tr.innerHTML = `
-                    <td class="asta-id">${escapeHtml(article.code)}</td>
-                    <td class="article-name">${escapeHtml(article.name)}</td>
-                    <td class="article-description">${escapeHtml(article.description)}</td>
+                    <td class="asta-id">${sanitizer(article.code)}</td>
+                    <td class="article-name">${sanitizer(article.name)}</td>
+                    <td class="article-description">${sanitizer(article.description)}</td>
                     <td class="price">${formatCurrency(article.price)}</td>
                 `;
                 return tr;
@@ -270,11 +258,11 @@
                 const tr = document.createElement('tr');
                 tr.className = 'asta-row';
                 tr.innerHTML = `
-                    <td class="asta-id">${escapeHtml(article.code)}</td>
-                    <td class="article-name">${escapeHtml(article.name)}</td>
-                    <td class="article-description">${escapeHtml(article.description)}</td>
+                    <td class="asta-id">${sanitizer(article.code)}</td>
+                    <td class="article-name">${sanitizer(article.name)}</td>
+                    <td class="article-description">${sanitizer(article.description)}</td>
                     <td class="article-path">
-                        ${article.path ? `<img src="Image/${escapeHtml(article.path)}" alt="Errore"/>` : 'Nessuna immagine'}
+                        ${article.path ? `<img src="Image/${sanitizer(article.path)}" alt="Errore"/>` : 'Nessuna immagine'}
                     </td>
                     <td class="price">${formatCurrency(article.price)}</td>
                 `;
@@ -296,7 +284,7 @@
                 }
 
                 tr.innerHTML = `
-                    <td class="user-name">${escapeHtml(offer.usnUser)}</td>
+                    <td class="user-name">${sanitizer(offer.usnUser)}</td>
                     <td class="min-bid">${formatCurrency(offer.bid)}</td>
                     <td class="date">${formatDate(offer.date)}</td>
                     <td class="offerta-status">${statusBadge}</td>
@@ -308,10 +296,10 @@
                 const div = document.createElement('div');
                 div.className = 'checkbox-item';
                 div.innerHTML = `
-                    <input type="checkbox" id="articolo_${escapeHtml(article.code)}" 
-                           name="codice" value="${escapeHtml(article.code)}" class="checkbox-input">
-                    <label for="articolo_${escapeHtml(article.code)}" class="checkbox-label">
-                        <span class="checkbox-name">${escapeHtml(article.name)}</span>
+                    <input type="checkbox" id="articolo_${sanitizer(article.code)}" 
+                           name="codice" value="${sanitizer(article.code)}" class="checkbox-input">
+                    <label for="articolo_${sanitizer(article.code)}" class="checkbox-label">
+                        <span class="checkbox-name">${sanitizer(article.name)}</span>
                         <span class="checkbox-price">${formatCurrency(article.price)}</span>
                     </label>
                 `;
@@ -323,15 +311,14 @@
                 div.className = 'no-aste-message';
                 div.innerHTML = `
                     <div class="no-aste-icon">${icon}</div>
-                    <h3>${escapeHtml(title)}</h3>
-                    ${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ''}
+                    <h3>${sanitizer(title)}</h3>
+                    ${subtitle ? `<p>${sanitizer(subtitle)}</p>` : ''}
                 `;
                 return div;
             }
         };
     })();
 
-    // ===== MODULO UI PRIVATO =====
     const UIModule = (function() {
         let messageTimeout;
 
@@ -369,12 +356,12 @@
                 }
             },
 
-            showLoading: function(elementId) {
-                const element = document.getElementById(elementId);
-                if (element) {
-                    element.innerHTML = '<div class="loading">Caricamento...</div>';
-                }
-            },
+            // showLoading: function(elementId) {
+            //     const element = document.getElementById(elementId);
+            //     if (element) {
+            //         element.innerHTML = '<div class="loading">Caricamento...</div>';
+            //     }
+            // },
 
             updateCount: function(elementId, count, suffix = '') {
                 const element = document.getElementById(elementId);
@@ -385,553 +372,7 @@
         };
     })();
 
-    // ===== CONTROLLER PRINCIPALE (PRIVATO) =====
-    const AuctionController = (function() {
-        let currentSection = null;
-        let currentUser = null;
-
-        // Inizializzazione
-        function init() {
-            // Ottieni utente corrente
-            currentUser = window.CURRENT_USER || 'default_user';
-
-            // Inizializza moduli
-            TemplateModule.init();
-            UserDataModule.init(currentUser);
-
-            // Setup event listeners
-            setupEventListeners();
-
-            // Mostra sezione iniziale
-            const userData = UserDataModule.getUserData();
-            if (userData.isFirstTime) {
-                showSection('acquisto');
-            } else if (userData.lastAction === 'auction_created') {
-                showSection('vendo');
-            } else {
-                showSection('acquisto');
-            }
-        }
-
-        function setupEventListeners() {
-            // Navigation
-            document.getElementById('nav-acquisto').addEventListener('click', () => {
-                showSection('acquisto');
-            });
-
-            document.getElementById('nav-vendo').addEventListener('click', () => {
-                showSection('vendo');
-            });
-
-            // Logout
-            document.querySelector('.btn-logout').addEventListener('click', logout);
-
-            // Delegazione eventi per elementi dinamici
-            document.getElementById('content').addEventListener('submit', handleFormSubmit);
-            document.getElementById('content').addEventListener('click', handleClick);
-        }
-
-        function handleFormSubmit(event) {
-            const form = event.target;
-
-            if (form.id === 'search-form') {
-                event.preventDefault();
-                searchAuctions(form);
-            } else if (form.id === 'create-article-form') {
-                event.preventDefault();
-                createArticle(form);
-            } else if (form.id === 'create-auction-form') {
-                event.preventDefault();
-                createAuction(form);
-            } else if (form.id === 'offer-form') {
-                event.preventDefault();
-                const auctionId = form.dataset.auctionId;
-                makeOffer(form, auctionId);
-            }
-        }
-
-        function handleClick(event) {
-            const target = event.target;
-
-            if (target.classList.contains('auction-detail-btn')) {
-                const auctionId = parseInt(target.dataset.auctionId);
-                showOffertaDetail(auctionId);
-            } else if (target.classList.contains('award-detail-btn')) {
-                const auctionId = parseInt(target.dataset.auctionId);
-                showAwardDetail(auctionId);
-            } else if (target.classList.contains('open-auction-detail-btn') ||
-                target.classList.contains('closed-auction-detail-btn')) {
-                const auctionId = parseInt(target.dataset.auctionId);
-                showDettaglioAsta(auctionId);
-            } else if (target.id === 'back-to-acquisto') {
-                showSection('acquisto');
-            } else if (target.id === 'back-to-vendo') {
-                showSection('vendo');
-            } else if (target.id === 'close-auction-btn') {
-                const auctionId = parseInt(target.dataset.auctionId);
-                closeAuction(auctionId);
-            }
-        }
-
-        async function showSection(section) {
-            currentSection = section;
-            UIModule.updateNavigation(section);
-
-            try {
-                if (section === 'acquisto') {
-                    await loadAcquistoSection();
-                } else if (section === 'vendo') {
-                    await loadVendoSection();
-                }
-            } catch (error) {
-                console.error('Error loading section:', error);
-                UIModule.showMessage('Errore nel caricamento della sezione', 'error');
-            }
-        }
-
-        async function loadAcquistoSection() {
-            const template = TemplateModule.getTemplate('template-acquisto-section');
-            document.getElementById('content').innerHTML = '';
-            document.getElementById('content').appendChild(template);
-
-            const userData = UserDataModule.getUserData();
-
-            // Mostra aste visitate se non è la prima volta e ci sono aste visitate
-            if (!userData.isFirstTime && userData.visitedAuctions && userData.visitedAuctions.length > 0) {
-                document.getElementById('aste-title').textContent = 'Aste Visitate di Recente';
-                await loadVisitedAuctions(userData.visitedAuctions);
-            } else {
-                // Mostra messaggio iniziale se è la prima volta o non ci sono aste visitate
-                document.getElementById('aste-title').textContent = 'Aste Disponibili';
-                const message = TemplateModule.createNoDataMessage(
-                    '🔍',
-                    'Cerca articoli per visualizzare le aste',
-                    'Le aste che visiterai appariranno qui'
-                );
-                document.getElementById('auctions-list').innerHTML = '';
-                document.getElementById('auctions-list').appendChild(message);
-                UIModule.updateCount('auctions-count', 0, 'aste');
-            }
-
-            // Carica aggiudicazioni
-            await loadAwards();
-        }
-
-        async function loadVendoSection() {
-            const template = TemplateModule.getTemplate('template-vendo-section');
-            document.getElementById('content').innerHTML = '';
-            document.getElementById('content').appendChild(template);
-
-            await Promise.all([
-                loadUserAuctions(),
-                loadUserArticles()
-            ]);
-        }
-
-        async function searchAuctions(form) {
-            const keyword = form.querySelector('#search-keyword').value.trim();
-
-            if (!keyword) {
-                UIModule.showMessage('Inserisci una parola chiave per cercare', 'error');
-                return;
-            }
-
-            try {
-                document.getElementById('aste-title').textContent = 'Risultati Ricerca';
-                UIModule.showLoading('auctions-list');
-
-                const response = await ApiModule.get(`Acquisto?search=${encodeURIComponent(keyword)}`);
-
-                if (response.success) {
-                    if (response.aste && response.aste.length > 0) {
-                        displayAuctions(response.aste);
-                        if (response.error) {
-                            UIModule.showMessage(response.error, 'info');
-                        }
-                    } else {
-                        // Nessuna asta trovata
-                        displayAuctions([]);
-                        UIModule.showMessage('Nessuna asta trovata per la ricerca: "' + keyword + '"', 'info');
-                    }
-                } else {
-                    UIModule.showMessage(response.message || response.error || 'Errore nella ricerca', 'error');
-                    displayAuctions([]);
-                }
-            } catch (error) {
-                console.error('Search error:', error);
-                UIModule.showMessage('Errore di connessione al server', 'error');
-                displayAuctions([]);
-            }
-        }
-
-        async function loadVisitedAuctions(auctionIds) {
-            if (!auctionIds || auctionIds.length === 0) {
-                document.getElementById('aste-title').textContent = 'Aste Disponibili';
-                const message = TemplateModule.createNoDataMessage(
-                    '🔍',
-                    'Cerca articoli per visualizzare le aste'
-                );
-                document.getElementById('auctions-list').innerHTML = '';
-                document.getElementById('auctions-list').appendChild(message);
-                UIModule.updateCount('auctions-count', 0, 'aste');
-                return;
-            }
-
-            try {
-                UIModule.showLoading('auctions-list');
-                const response = await ApiModule.post('AsteVisitate', {'ids[]': auctionIds});
-
-                if (response.success && response.aste && response.aste.length > 0) {
-                    displayAuctions(response.aste);
-                } else {
-                    // Le aste visitate non esistono più o sono terminate
-                    document.getElementById('aste-title').textContent = 'Aste Disponibili';
-                    const message = TemplateModule.createNoDataMessage(
-                        '🔍',
-                        'Le aste visitate sono terminate',
-                        'Cerca nuove aste da visualizzare'
-                    );
-                    document.getElementById('auctions-list').innerHTML = '';
-                    document.getElementById('auctions-list').appendChild(message);
-                    UIModule.updateCount('auctions-count', 0, 'aste');
-
-                    // Pulisci le aste visitate scadute
-                    const userData = UserDataModule.getUserData();
-                    userData.visitedAuctions = [];
-                    UserDataModule.saveUserData(userData);
-                }
-            } catch (error) {
-                console.error('Error loading visited auctions:', error);
-                document.getElementById('aste-title').textContent = 'Aste Disponibili';
-                const message = TemplateModule.createNoDataMessage(
-                    '🔍',
-                    'Errore nel caricamento delle aste visitate',
-                    'Prova a cercare nuove aste'
-                );
-                document.getElementById('auctions-list').innerHTML = '';
-                document.getElementById('auctions-list').appendChild(message);
-                UIModule.updateCount('auctions-count', 0, 'aste');
-            }
-        }
-
-        async function loadAwards() {
-            try {
-                const response = await ApiModule.get('Acquisto');
-
-                if (response.success && response.aggiudicazioni) {
-                    displayAwards(response.aggiudicazioni);
-                } else {
-                    displayAwards([]);
-                }
-            } catch (error) {
-                console.error('Error loading awards:', error);
-                displayAwards([]);
-            }
-        }
-
-        async function loadUserAuctions() {
-            try {
-                const response = await ApiModule.get('Vendo');
-
-                if (response.success && response.aste) {
-                    displayUserAuctions(response.aste);
-                } else {
-                    displayUserAuctions([]);
-                }
-            } catch (error) {
-                console.error('Error loading user auctions:', error);
-                displayUserAuctions([]);
-            }
-        }
-
-        async function loadUserArticles() {
-            try {
-                const response = await ApiModule.get('Vendo');
-
-                if (response.success && response.articoli) {
-                    // Filtra solo gli articoli non assegnati a un'asta
-                    const availableArticles = response.articoli.filter(article =>
-                        !article.idAsta || article.idAsta === 0
-                    );
-                    displayArticlesForSelection(availableArticles);
-                } else {
-                    displayArticlesForSelection([]);
-                }
-            } catch (error) {
-                console.error('Error loading user articles:', error);
-                displayArticlesForSelection([]);
-            }
-        }
-
-        async function createArticle(form) {
-            const formData = new FormData(form);
-
-            try {
-                const response = await fetch('AddArticolo', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                        // Non aggiungere Content-Type per multipart/form-data
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const text = await response.text();
-                let data;
-
-                try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    data = {success: false, message: text};
-                }
-
-                if (data.success) {
-                    UIModule.showMessage('Articolo creato con successo', 'success');
-                    form.reset();
-                    await Promise.all([
-                        loadUserAuctions(),
-                        loadUserArticles()
-                    ]);
-                } else {
-                    UIModule.showMessage(data.message || 'Errore nella creazione', 'error');
-                }
-            } catch (error) {
-                console.error('Create article error:', error);
-                UIModule.showMessage('Errore di connessione al server', 'error');
-            }
-        }
-
-        async function createAuction(form) {
-            const formData = new FormData(form);
-            const checkboxes = form.querySelectorAll('input[name="codice"]:checked');
-            const codici = Array.from(checkboxes).map(cb => cb.value);
-
-            if (codici.length === 0) {
-                UIModule.showMessage('Seleziona almeno un articolo', 'error');
-                return;
-            }
-
-            const data = {
-                codice: codici,
-                minBid: formData.get('minBid'),
-                date: formData.get('date')
-            };
-
-            try {
-                const response = await ApiModule.post('CreateAsta', data);
-
-                if (response.success) {
-                    UIModule.showMessage('Asta creata con successo', 'success');
-                    form.reset();
-                    UserDataModule.setLastAction('auction_created');
-                    await Promise.all([
-                        loadUserAuctions(),
-                        loadUserArticles()
-                    ]);
-                } else {
-                    UIModule.showMessage(response.message || 'Errore nella creazione', 'error');
-                }
-            } catch (error) {
-                console.error('Create auction error:', error);
-                UIModule.showMessage('Errore di connessione al server', 'error');
-            }
-        }
-
-        async function makeOffer(form, auctionId) {
-            const formData = new FormData(form);
-
-            const data = {
-                idasta: auctionId,
-                offertaprezzo: formData.get('offertaprezzo')
-            };
-
-            try {
-                const response = await ApiModule.post('Offerta', data);
-
-                if (response.success) {
-                    UIModule.showMessage('Offerta inviata con successo', 'success');
-                    await showOffertaDetail(auctionId);
-                } else {
-                    UIModule.showMessage(response.message || 'Errore nell\'invio', 'error');
-                }
-            } catch (error) {
-                console.error('Make offer error:', error);
-                UIModule.showMessage('Errore di connessione al server', 'error');
-            }
-        }
-
-        async function closeAuction(auctionId) {
-            if (!confirm('Sei sicuro di voler chiudere questa asta?')) {
-                return;
-            }
-
-            try {
-                const response = await ApiModule.post('Dettaglio', {idAsta: auctionId});
-
-                if (response.success) {
-                    UIModule.showMessage('Asta chiusa con successo', 'success');
-                    await showDettaglioAsta(auctionId);
-                } else {
-                    UIModule.showMessage(response.message || 'Errore nella chiusura', 'error');
-                }
-            } catch (error) {
-                console.error('Close auction error:', error);
-                UIModule.showMessage('Errore di connessione al server', 'error');
-            }
-        }
-
-        async function showOffertaDetail(auctionId) {
-            // Aggiungi l'asta alle aste visitate
-            UserDataModule.addVisitedAuction(auctionId);
-
-            try {
-                const response = await ApiModule.get(`Offerta?idasta=${auctionId}`);
-
-                if (!response.success) {
-                    UIModule.showMessage(response.message || 'Errore nel caricamento', 'error');
-                    return;
-                }
-
-                const template = TemplateModule.getTemplate('template-offerta-detail');
-                document.getElementById('content').innerHTML = '';
-                document.getElementById('content').appendChild(template);
-
-                // Popola i dati
-                displayArticlesInTable(response.articoli || [], 'articoli-table-container', true);
-                displayOffersInTable(response.offerta || [], 'offerte-table-container', 'attiva');
-
-                // Aggiorna i contatori
-                UIModule.updateCount('articles-count', (response.articoli || []).length, 'articoli');
-                UIModule.updateCount('offers-count', (response.offerta || []).length, 'offerte');
-
-                // Setup form
-                const offerForm = document.getElementById('offer-form');
-                if (offerForm) {
-                    offerForm.dataset.auctionId = auctionId;
-                }
-
-            } catch (error) {
-                console.error('Error loading offerta:', error);
-                UIModule.showMessage('Errore di connessione al server', 'error');
-            }
-        }
-
-        async function showAwardDetail(auctionId) {
-            // Aggiungi l'asta alle aste visitate
-            UserDataModule.addVisitedAuction(auctionId);
-
-            try {
-                const response = await ApiModule.get(`Offerta?idasta=${auctionId}`);
-
-                if (!response.success) {
-                    UIModule.showMessage(response.message || 'Errore nel caricamento', 'error');
-                    return;
-                }
-
-                const template = TemplateModule.getTemplate('template-offerta-detail');
-                document.getElementById('content').innerHTML = '';
-                document.getElementById('content').appendChild(template);
-
-                // Popola i dati
-                displayArticlesInTable(response.articoli || [], 'articoli-table-container', true);
-                displayOffersInTable(response.offerta || [], 'offerte-table-container', 'chiusa');
-
-                // Aggiorna i contatori
-                UIModule.updateCount('articles-count', (response.articoli || []).length, 'articoli');
-                UIModule.updateCount('offers-count', (response.offerta || []).length, 'offerte');
-
-                // Nascondi il form dell'offerta per le aggiudicazioni
-                const offerFormContainer = document.querySelector('.forms-container');
-                if (offerFormContainer) {
-                    offerFormContainer.style.display = 'none';
-                }
-
-            } catch (error) {
-                console.error('Error loading award:', error);
-                UIModule.showMessage('Errore di connessione al server', 'error');
-            }
-        }
-
-        async function showDettaglioAsta(auctionId) {
-            try {
-                const response = await ApiModule.get(`Dettaglio?idasta=${auctionId}`);
-
-                if (!response.success) {
-                    UIModule.showMessage(response.message || 'Errore nel caricamento', 'error');
-                    return;
-                }
-
-                const template = TemplateModule.getTemplate('template-dettaglio-asta');
-                document.getElementById('content').innerHTML = '';
-                document.getElementById('content').appendChild(template);
-
-                const asta = response.asta;
-
-                // Popola i dati dell'asta
-                document.querySelector('#asta-id').textContent = `#${asta.id}`;
-                document.querySelector('#asta-id-value').textContent = `#${asta.id}`;
-                document.getElementById('asta-price').textContent = `€${asta.initialPrice}`;
-                document.getElementById('asta-minbid').textContent = `€${asta.minBid}`;
-                document.getElementById('asta-date').textContent = new Date(asta.date).toLocaleString('it-IT');
-
-                // Status
-                const statusContainer = document.getElementById('asta-status');
-                if (asta.state === 'attiva') {
-                    statusContainer.innerHTML = '<span class="status-badge status-active">🟢 Attiva</span>';
-                } else {
-                    statusContainer.innerHTML = '<span class="status-badge status-closed">🔴 Chiusa</span>';
-                }
-
-                // Articoli
-                displayArticlesInTable(response.articoli || [], 'articoli-asta-container', true);
-
-                // Offerte
-                displayOffersInTable(response.offerte || [], 'offerte-dettaglio-container', asta.state);
-
-                // Pulsante chiusura (solo se attiva)
-                if (asta.state === 'attiva') {
-                    const actionsContainer = document.getElementById('asta-actions');
-                    if (actionsContainer) {
-                        actionsContainer.innerHTML = `
-                            <button id="close-auction-btn" class="btn-close-auction" data-auction-id="${asta.id}">
-                                Chiudi Asta
-                            </button>
-                        `;
-                    }
-                }
-
-                // Sezione vincitore (solo se chiusa)
-                if (asta.state === 'chiusa' && response.utente) {
-                    const winnerSection = document.getElementById('winner-section');
-                    if (winnerSection) {
-                        winnerSection.innerHTML = `
-                            <h3 class="winner-title">Asta Aggiudicata</h3>
-                            <div class="winner-card">
-                                <div class="winner-info">
-                                    <h4>Aggiudicatario</h4>
-                                    <p class="winner-name">${response.utente.name} ${response.utente.surname}</p>
-                                    <p class="winner-address">${response.utente.address}</p>
-                                </div>
-                                <div class="winning-bid">
-                                    <h4>Prezzo finale</h4>
-                                    <p class="winning-amount">€${response.offertaVincente.bid}</p>
-                                </div>
-                            </div>
-                        `;
-                    }
-                }
-
-            } catch (error) {
-                console.error('Error loading dettaglio:', error);
-                UIModule.showMessage('Errore di connessione al server', 'error');
-            }
-        }
-
-        // Funzioni di display
+    const AuctionRenderer = (function() {
         function displayAuctions(auctions) {
             const container = document.getElementById('auctions-list');
 
@@ -1029,10 +470,7 @@
             const openAuctions = auctions.filter(a => a.state === 'attiva');
             const closedAuctions = auctions.filter(a => a.state === 'chiusa');
 
-            // Aste aperte
             displayOpenAuctions(openAuctions);
-
-            // Aste chiuse
             displayClosedAuctions(closedAuctions);
         }
 
@@ -1152,29 +590,14 @@
             container.appendChild(table);
         }
 
-        function displayArticlesForSelection(articles) {
-            const container = document.getElementById('articles-checkbox');
+        return {
+            displayAuctions,
+            displayAwards,
+            displayUserAuctions
+        };
+    })();
 
-            if (!articles || articles.length === 0) {
-                container.innerHTML = `
-                    <div class="no-articles-message">
-                        <p>Nessun articolo disponibile. Crea prima un articolo.</p>
-                    </div>
-                `;
-                const createBtn = document.getElementById('create-auction-btn');
-                if (createBtn) createBtn.disabled = true;
-                return;
-            }
-
-            container.innerHTML = '';
-            articles.forEach(article => {
-                container.appendChild(TemplateModule.createCheckboxItem(article));
-            });
-
-            const createBtn = document.getElementById('create-auction-btn');
-            if (createBtn) createBtn.disabled = false;
-        }
-
+    const ArticleRenderer = (function() {
         function displayArticlesInTable(articles, containerId, showImages = false) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -1232,6 +655,36 @@
             container.appendChild(table);
         }
 
+        function displayArticlesForSelection(articles) {
+            const container = document.getElementById('articles-checkbox');
+
+            if (!articles || articles.length === 0) {
+                container.innerHTML = `
+                    <div class="no-articles-message">
+                        <p>Nessun articolo disponibile. Crea prima un articolo.</p>
+                    </div>
+                `;
+                const createBtn = document.getElementById('create-auction-btn');
+                if (createBtn) createBtn.disabled = true;
+                return;
+            }
+
+            container.innerHTML = '';
+            articles.forEach(article => {
+                container.appendChild(TemplateModule.createCheckboxItem(article));
+            });
+
+            const createBtn = document.getElementById('create-auction-btn');
+            if (createBtn) createBtn.disabled = false;
+        }
+
+        return {
+            displayArticlesInTable,
+            displayArticlesForSelection
+        };
+    })();
+
+    const OfferRenderer = (function() {
         function displayOffersInTable(offers, containerId, astaState) {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -1269,20 +722,612 @@
             container.appendChild(table);
         }
 
+        return {
+            displayOffersInTable
+        };
+    })();
+
+    const NavigationController = (function() {
+        function showSection(section) {
+            UIModule.updateNavigation(section);
+
+            try {
+                if (section === 'acquisto') {
+                    AcquistoController.load();
+                } else if (section === 'vendo') {
+                    VendoController.load();
+                }
+            } catch (error) {
+                console.error('Error loading section:', error);
+                UIModule.showMessage('Errore nel caricamento della sezione', 'error');
+            }
+        }
+
+        function goToOffertaDetail(auctionId) {
+            OffertaController.show(auctionId);
+        }
+
+        function goToAwardDetail(auctionId) {
+            AwardController.show(auctionId);
+        }
+
+        function goToDettaglioAsta(auctionId) {
+            DettaglioController.show(auctionId);
+        }
+
+        function backToAcquisto() {
+            showSection('acquisto');
+        }
+
+        function backToVendo() {
+            showSection('vendo');
+        }
+
+        return {
+            showSection,
+            goToOffertaDetail,
+            goToAwardDetail,
+            goToDettaglioAsta,
+            backToAcquisto,
+            backToVendo
+        };
+    })();
+
+    const AcquistoController = (function() {
+        async function load() {
+            const template = TemplateModule.getTemplate('template-acquisto-section');
+            document.getElementById('content').innerHTML = '';
+            document.getElementById('content').appendChild(template);
+
+            const userData = UserDataModule.getUserData();
+
+            // Mostra aste visitate se non è la prima volta e ci sono aste visitate
+            if (!userData.isFirstTime && userData.visitedAuctions && userData.visitedAuctions.length > 0) {
+                document.getElementById('aste-title').textContent = 'Aste Visitate di Recente';
+                await loadVisitedAuctions(userData.visitedAuctions);
+            } else {
+                // Mostra messaggio iniziale se è la prima volta o non ci sono aste visitate
+                document.getElementById('aste-title').textContent = 'Aste Disponibili';
+                const message = TemplateModule.createNoDataMessage(
+                    '🔍',
+                    'Cerca articoli per visualizzare le aste',
+                    'Le aste che visiterai appariranno qui'
+                );
+                document.getElementById('auctions-list').innerHTML = '';
+                document.getElementById('auctions-list').appendChild(message);
+                UIModule.updateCount('auctions-count', 0, 'aste');
+            }
+
+            await loadAwards();
+        }
+
+        async function searchAuctions(form) {
+            const keyword = form.querySelector('#search-keyword').value.trim();
+
+            if (!keyword) {
+                UIModule.showMessage('Inserisci una parola chiave per cercare', 'error');
+                return;
+            }
+
+            try {
+                document.getElementById('aste-title').textContent = 'Risultati Ricerca';
+                //UIModule.showLoading('auctions-list');
+
+                const response = await ApiModule.get(`Acquisto?search=${encodeURIComponent(keyword)}`);
+
+                if (response.success) {
+                    if (response.aste && response.aste.length > 0) {
+                        AuctionRenderer.displayAuctions(response.aste);
+                        if (response.error) {
+                            UIModule.showMessage(response.error, 'info');
+                        }
+                    } else {
+                        // Nessuna asta trovata
+                        AuctionRenderer.displayAuctions([]);
+                        UIModule.showMessage('Nessuna asta trovata per la ricerca: "' + keyword + '"', 'info');
+                    }
+                } else {
+                    UIModule.showMessage(response.message || response.error || 'Errore nella ricerca', 'error');
+                    AuctionRenderer.displayAuctions([]);
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                UIModule.showMessage('Errore di connessione al server', 'error');
+                AuctionRenderer.displayAuctions([]);
+            }
+        }
+
+        async function loadVisitedAuctions(auctionIds) {
+            if (!auctionIds || auctionIds.length === 0) {
+                document.getElementById('aste-title').textContent = 'Aste Disponibili';
+                const message = TemplateModule.createNoDataMessage(
+                    '🔍',
+                    'Cerca articoli per visualizzare le aste'
+                );
+                document.getElementById('auctions-list').innerHTML = '';
+                document.getElementById('auctions-list').appendChild(message);
+                UIModule.updateCount('auctions-count', 0, 'aste');
+                return;
+            }
+
+            try {
+                const response = await ApiModule.post('AsteVisitate', {'ids': auctionIds});
+
+                if (response.success && response.aste && response.aste.length > 0) {
+                    AuctionRenderer.displayAuctions(response.aste);
+                } else {
+                    // Le aste visitate non esistono più o sono terminate
+                    document.getElementById('aste-title').textContent = 'Aste Disponibili';
+                    const message = TemplateModule.createNoDataMessage(
+                        '🔍',
+                        'Le aste visitate sono terminate',
+                        'Cerca nuove aste da visualizzare'
+                    );
+                    document.getElementById('auctions-list').innerHTML = '';
+                    document.getElementById('auctions-list').appendChild(message);
+                    UIModule.updateCount('auctions-count', 0, 'aste');
+
+                    // Pulisci le aste visitate scadute
+                    const userData = UserDataModule.getUserData();
+                    userData.visitedAuctions = [];
+                    UserDataModule.saveUserData(userData);
+                }
+            } catch (error) {
+                console.error('Error loading visited auctions:', error);
+                document.getElementById('aste-title').textContent = 'Aste Disponibili';
+                const message = TemplateModule.createNoDataMessage(
+                    '🔍',
+                    'Errore nel caricamento delle aste visitate',
+                    'Prova a cercare nuove aste'
+                );
+                document.getElementById('auctions-list').innerHTML = '';
+                document.getElementById('auctions-list').appendChild(message);
+                UIModule.updateCount('auctions-count', 0, 'aste');
+            }
+        }
+
+        async function loadAwards() {
+            try {
+                const response = await ApiModule.get('Acquisto');
+
+                if (response.success && response.aggiudicazioni) {
+                    AuctionRenderer.displayAwards(response.aggiudicazioni);
+                } else {
+                    AuctionRenderer.displayAwards([]);
+                }
+            } catch (error) {
+                console.error('Error loading awards:', error);
+                AuctionRenderer.displayAwards([]);
+            }
+        }
+
+        return {
+            load,
+            searchAuctions
+        };
+    })();
+
+    const VendoController = (function() {
+        async function load() {
+            const template = TemplateModule.getTemplate('template-vendo-section');
+            document.getElementById('content').innerHTML = '';
+            document.getElementById('content').appendChild(template);
+
+            await Promise.all([
+                loadUserAuctions(),
+                loadUserArticles()
+            ]);
+        }
+
+        async function loadUserAuctions() {
+            try {
+                const response = await ApiModule.get('Vendo');
+
+                if (response.success && response.aste) {
+                    AuctionRenderer.displayUserAuctions(response.aste);
+                } else {
+                    AuctionRenderer.displayUserAuctions([]);
+                }
+            } catch (error) {
+                console.error('Error loading user auctions:', error);
+                AuctionRenderer.displayUserAuctions([]);
+            }
+        }
+
+        async function loadUserArticles() {
+            try {
+                const response = await ApiModule.get('Vendo');
+
+                if (response.success && response.articoli) {
+                    ArticleRenderer.displayArticlesForSelection(response.articoli);
+                } else {
+                    ArticleRenderer.displayArticlesForSelection([]);
+                }
+            } catch (error) {
+                console.error('Error loading user articles:', error);
+                ArticleRenderer.displayArticlesForSelection([]);
+            }
+        }
+
+        async function createArticle(form) {
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('AddArticolo', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const text = await response.text();
+                let data;
+
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    data = {success: false, message: text};
+                }
+
+                if (data.success) {
+                    form.reset();
+                    await Promise.all([
+                        loadUserAuctions(),
+                        loadUserArticles()
+                    ]);
+                } else {
+                    UIModule.showMessage(data.message || 'Errore nella creazione', 'error');
+                }
+            } catch (error) {
+                console.error('Create article error:', error);
+                UIModule.showMessage('Errore di connessione al server', 'error');
+            }
+        }
+
+        async function createAuction(form) {
+            const formData = new FormData(form);
+            const checkboxes = form.querySelectorAll('input[name="codice"]:checked');
+            const codici = Array.from(checkboxes).map(cb => cb.value);
+
+            if (codici.length === 0) {
+                UIModule.showMessage('Seleziona almeno un articolo', 'error');
+                return;
+            }
+
+            const data = {
+                codice: codici,
+                minBid: formData.get('minBid'),
+                date: formData.get('date')
+            };
+
+            try {
+                const response = await ApiModule.post('CreateAsta', data);
+
+                if (response.success) {
+                    form.reset();
+                    UserDataModule.setLastAction('auction_created');
+                    await Promise.all([
+                        loadUserAuctions(),
+                        loadUserArticles()
+                    ]);
+                } else {
+                    UIModule.showMessage(response.message || 'Errore nella creazione', 'error');
+                }
+            } catch (error) {
+                console.error('Create auction error:', error);
+                UIModule.showMessage('Errore di connessione al server', 'error');
+            }
+        }
+
+        return {
+            load,
+            createArticle,
+            createAuction
+        };
+    })();
+
+    const OffertaController = (function() {
+        async function show(auctionId) {
+            // Aggiungi l'asta alle aste visitate
+            UserDataModule.addVisitedAuction(auctionId);
+
+            try {
+                const response = await ApiModule.get(`Offerta?idasta=${auctionId}`);
+
+                if (!response.success) {
+                    UIModule.showMessage(response.message || 'Errore nel caricamento', 'error');
+                    return;
+                }
+
+                const template = TemplateModule.getTemplate('template-offerta-detail');
+                document.getElementById('content').innerHTML = '';
+                document.getElementById('content').appendChild(template);
+
+                // Popola i dati
+                ArticleRenderer.displayArticlesInTable(response.articoli || [], 'articoli-table-container', true);
+                OfferRenderer.displayOffersInTable(response.offerta || [], 'offerte-table-container', 'attiva');
+
+                // Aggiorna i contatori
+                UIModule.updateCount('articles-count', (response.articoli || []).length, 'articoli');
+                UIModule.updateCount('offers-count', (response.offerta || []).length, 'offerte');
+
+                // Setup form
+                const offerForm = document.getElementById('offer-form');
+                if (offerForm) {
+                    offerForm.dataset.auctionId = auctionId;
+                }
+
+            } catch (error) {
+                console.error('Error loading offerta:', error);
+                UIModule.showMessage('Errore di connessione al server', 'error');
+            }
+        }
+
+        async function makeOffer(form, auctionId) {
+            const formData = new FormData(form);
+
+            const data = {
+                idasta: auctionId,
+                offertaprezzo: formData.get('offertaprezzo')
+            };
+
+            try {
+                const response = await ApiModule.post('Offerta', data);
+
+                if (response.success) {
+                    await show(auctionId);
+                } else {
+                    UIModule.showMessage(response.message || 'Errore nell\'invio', 'error');
+                }
+            } catch (error) {
+                console.error('Make offer error:', error);
+                UIModule.showMessage('Errore di connessione al server', 'error');
+            }
+        }
+
+        return {
+            show,
+            makeOffer
+        };
+    })();
+
+    const AwardController = (function() {
+        async function show(auctionId) {
+            try {
+                const response = await ApiModule.get(`Offerta?idasta=${auctionId}`);
+
+                if (!response.success) {
+                    UIModule.showMessage(response.message || 'Errore nel caricamento', 'error');
+                    return;
+                }
+
+                const template = TemplateModule.getTemplate('template-offerta-detail');
+                document.getElementById('content').innerHTML = '';
+                document.getElementById('content').appendChild(template);
+
+                // Popola i dati
+                ArticleRenderer.displayArticlesInTable(response.articoli || [], 'articoli-table-container', true);
+                OfferRenderer.displayOffersInTable(response.offerta || [], 'offerte-table-container', 'chiusa');
+
+                // Aggiorna i contatori
+                UIModule.updateCount('articles-count', (response.articoli || []).length, 'articoli');
+                UIModule.updateCount('offers-count', (response.offerta || []).length, 'offerte');
+
+                // Nascondi il form dell'offerta per le aggiudicazioni
+                const offerFormContainer = document.querySelector('.forms-container');
+                if (offerFormContainer) {
+                    offerFormContainer.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('Error loading award:', error);
+                UIModule.showMessage('Errore di connessione al server', 'error');
+            }
+        }
+
+        return {
+            show
+        };
+    })();
+
+    const DettaglioController = (function() {
+        async function show(auctionId) {
+            try {
+                const response = await ApiModule.get(`Dettaglio?idasta=${auctionId}`);
+
+                if (!response.success) {
+                    UIModule.showMessage(response.message || 'Errore nel caricamento', 'error');
+                    return;
+                }
+
+                const template = TemplateModule.getTemplate('template-dettaglio-asta');
+                document.getElementById('content').innerHTML = '';
+                document.getElementById('content').appendChild(template);
+
+                const asta = response.asta;
+
+                // Popola i dati dell'asta
+                document.querySelector('#asta-id').textContent = `#${asta.id}`;
+                document.querySelector('#asta-id-value').textContent = `#${asta.id}`;
+                document.getElementById('asta-price').textContent = `€${asta.initialPrice}`;
+                document.getElementById('asta-minbid').textContent = `€${asta.minBid}`;
+                document.getElementById('asta-date').textContent = new Date(asta.date).toLocaleString('it-IT');
+
+                // Status
+                const statusContainer = document.getElementById('asta-status');
+                if (asta.state === 'attiva') {
+                    statusContainer.innerHTML = '<span class="status-badge status-active">🟢 Attiva</span>';
+                } else {
+                    statusContainer.innerHTML = '<span class="status-badge status-closed">🔴 Chiusa</span>';
+                }
+
+                ArticleRenderer.displayArticlesInTable(response.articoli || [], 'articoli-asta-container', true);
+
+                OfferRenderer.displayOffersInTable(response.offerte || [], 'offerte-dettaglio-container', asta.state);
+
+                if (asta.state === 'attiva') {
+                    const actionsContainer = document.getElementById('asta-actions');
+                    if (actionsContainer) {
+                        actionsContainer.innerHTML = `
+                            <button id="close-auction-btn" class="btn-close-auction" data-auction-id="${asta.id}">
+                                Chiudi Asta
+                            </button>
+                        `;
+                    }
+                }
+
+                // Sezione vincitore (solo se chiusa)
+                if (asta.state === 'chiusa' && response.utente) {
+                    const winnerSection = document.getElementById('winner-section');
+                    if (winnerSection) {
+                        winnerSection.innerHTML = `
+                            <h3 class="winner-title">Asta Aggiudicata</h3>
+                            <div class="winner-card">
+                                <div class="winner-info">
+                                    <h4>Aggiudicatario</h4>
+                                    <p class="winner-name">${response.utente.name} ${response.utente.surname}</p>
+                                    <p class="winner-address">${response.utente.address}</p>
+                                </div>
+                                <div class="winning-bid">
+                                    <h4>Prezzo finale</h4>
+                                    <p class="winning-amount">€${response.offertaVincente.bid}</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error loading dettaglio:', error);
+                UIModule.showMessage('Errore di connessione al server', 'error');
+            }
+        }
+
+        async function closeAuction(auctionId) {
+            if (!confirm('Sei sicuro di voler chiudere questa asta?')) {
+                return;
+            }
+
+            try {
+                const response = await ApiModule.post('Dettaglio', {idAsta: auctionId});
+
+                if (response.success) {
+                    await show(auctionId);
+                } else {
+                    UIModule.showMessage(response.message || 'Errore nella chiusura', 'error');
+                }
+            } catch (error) {
+                console.error('Close auction error:', error);
+                UIModule.showMessage('Errore di connessione al server', 'error');
+            }
+        }
+
+        return {
+            show,
+            closeAuction
+        };
+    })();
+
+    const EventController = (function() {
+        function setupEventListeners() {
+            document.getElementById('nav-acquisto').addEventListener('click', () => {
+                NavigationController.showSection('acquisto');
+            });
+
+            document.getElementById('nav-vendo').addEventListener('click', () => {
+                NavigationController.showSection('vendo');
+            });
+
+            document.querySelector('.btn-logout').addEventListener('click', logout);
+
+            document.getElementById('content').addEventListener('submit', handleFormSubmit);
+            document.getElementById('content').addEventListener('click', handleClick);
+        }
+
+        function handleFormSubmit(event) {
+            const form = event.target;
+
+            if (form.id === 'search-form') {
+                event.preventDefault();
+                AcquistoController.searchAuctions(form);
+            } else if (form.id === 'create-article-form') {
+                event.preventDefault();
+                VendoController.createArticle(form);
+            } else if (form.id === 'create-auction-form') {
+                event.preventDefault();
+                VendoController.createAuction(form);
+            } else if (form.id === 'offer-form') {
+                event.preventDefault();
+                const auctionId = form.dataset.auctionId;
+                OffertaController.makeOffer(form, auctionId);
+            }
+        }
+
+        function handleClick(event) {
+            const target = event.target;
+
+            if (target.classList.contains('auction-detail-btn')) {
+                const auctionId = parseInt(target.dataset.auctionId);
+                NavigationController.goToOffertaDetail(auctionId);
+            } else if (target.classList.contains('award-detail-btn')) {
+                const auctionId = parseInt(target.dataset.auctionId);
+                NavigationController.goToAwardDetail(auctionId);
+            } else if (target.classList.contains('open-auction-detail-btn') ||
+                target.classList.contains('closed-auction-detail-btn')) {
+                const auctionId = parseInt(target.dataset.auctionId);
+                NavigationController.goToDettaglioAsta(auctionId);
+            } else if (target.id === 'back-to-acquisto') {
+                NavigationController.backToAcquisto();
+            } else if (target.id === 'back-to-vendo') {
+                NavigationController.backToVendo();
+            } else if (target.id === 'close-auction-btn') {
+                const auctionId = parseInt(target.dataset.auctionId);
+                DettaglioController.closeAuction(auctionId);
+            }
+        }
+
         function logout() {
             if (confirm('Sei sicuro di voler uscire?')) {
                 window.location.href = 'Logout';
             }
         }
 
-        // Esponi solo il metodo init
         return {
-            init: init
+            setupEventListeners
         };
     })();
 
-    // ===== INIZIALIZZAZIONE =====
+    const Startup = (function() {
+        let currentUser = null;
+
+        function init() {
+            currentUser = window.CURRENT_USER;
+
+            TemplateModule.init();
+            UserDataModule.init(currentUser);
+            EventController.setupEventListeners();
+
+            const userData = UserDataModule.getUserData();
+            if (userData.isFirstTime) {
+                NavigationController.showSection('acquisto');
+            } else if (userData.lastAction === 'auction_created') {
+                NavigationController.showSection('vendo');
+            } else {
+                NavigationController.showSection('acquisto');
+            }
+        }
+
+        return {
+            init
+        };
+    })();
+
     document.addEventListener('DOMContentLoaded', function() {
-        AuctionController.init();
+        Startup.init();
     });
 })();

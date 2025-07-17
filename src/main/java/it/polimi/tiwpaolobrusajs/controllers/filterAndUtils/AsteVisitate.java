@@ -64,7 +64,7 @@ public class AsteVisitate extends HttpServlet {
         }
         JsonObject jsonResponse = new JsonObject();
         try {
-            String[] ids = request.getParameterValues("ids[]");
+            String[] ids = request.getParameterValues("ids");
 
             if (ids == null || ids.length == 0) {
                 jsonResponse.addProperty("success", false);
