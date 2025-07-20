@@ -851,7 +851,8 @@
             }
 
             try {
-                const response = await ApiModule.post('AsteVisitate', {'ids': auctionIds});
+                const idsString = auctionIds.join(',');
+                const response = await ApiModule.get(`AsteVisitate?ids=${idsString}`);
 
                 if (response.success && response.aste && response.aste.length > 0) {
                     AuctionRenderer.displayAuctions(response.aste);
@@ -1307,6 +1308,9 @@
 
         function init() {
             currentUser = window.CURRENT_USER;
+            if(currentUser == null){
+                window.location.href = 'index.html';
+            }
 
             TemplateModule.init();
             UserDataModule.init(currentUser);

@@ -46,11 +46,6 @@ public class AsteVisitate extends HttpServlet {
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        doPost(request, response);
-    }
-
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         Gson gson = new Gson();
@@ -98,5 +93,10 @@ public class AsteVisitate extends HttpServlet {
             jsonResponse.addProperty("message", "Errore del server: " + e.getMessage());
         }
         response.getWriter().write(gson.toJson(jsonResponse));
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        doGet(request,response);
     }
 }
