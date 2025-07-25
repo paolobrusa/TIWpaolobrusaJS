@@ -2,7 +2,6 @@ package it.polimi.tiwpaolobrusajs.beans;
 
 public class Utente {
     private String username;
-    private String pwd;
     private String name;
     private String surname;
     private String address;
@@ -20,14 +19,6 @@ public class Utente {
 
     public void setUsername(String username) {
         this.username = username;
-    }
-
-    public String getPwd() {
-        return pwd;
-    }
-
-    public void setPwd(String pwd) {
-        this.pwd = pwd;
     }
 
     public String getName() {

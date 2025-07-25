@@ -17,6 +17,9 @@
         const messageContainer = document.getElementById('messageContainer');
         const messageClass = type === 'error' ? 'error-message' : 'success-message';
         messageContainer.innerHTML = `<div class="${messageClass}">${message}</div>`;
+        setTimeout(() => {
+            messageContainer.innerHTML = '';
+        }, 5000);
     }
 
     function loginUser(username, password) {

@@ -59,8 +59,14 @@ public class Login extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
         UtenteDAO uDAO = new UtenteDAO(con);
         Utente user;
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
+        if (username == null || password == null || username.length() > 50 || password.length() > 50) {
+            response.getWriter().write("{\"success\": false, \"message\": \"" + "Lunghezza deve essere minore di 50 e non null" +"\"}");
+            return;
+        }
         try {
-            user = uDAO.getUtente(request.getParameter("username"), request.getParameter("password"));
+            user = uDAO.getUtente(username, password);
         } catch (SQLException e) {
             response.getWriter().write("{\"success\": false, \"message\": \"" + e.getCause().getMessage() +"\"}");
             return;

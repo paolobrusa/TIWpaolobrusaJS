@@ -69,11 +69,6 @@ public class Acquisto extends HttpServlet {
             response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
-//        String errorMessage = (String) request.getSession().getAttribute("errorMessage");
-//        if (errorMessage != null) {
-//            request.getSession().removeAttribute("errorMessage");
-//            request.setAttribute("errorMessage", errorMessage);
-//        }
         List<Asta> aste = new ArrayList<>();
         AstaDAO aDao = new AstaDAO(con);
         String keyWord = request.getParameter("search");

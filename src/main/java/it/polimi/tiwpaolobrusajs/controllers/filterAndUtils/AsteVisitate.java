@@ -63,7 +63,7 @@ public class AsteVisitate extends HttpServlet {
 
             if (ids == null || ids.length == 0) {
                 jsonResponse.addProperty("success", false);
-                jsonResponse.addProperty("message", "Nessun ID asta fornito");
+                jsonResponse.addProperty("message", "Nessun id asta fornito");
                 response.getWriter().write(gson.toJson(jsonResponse));
                 return;
             }
