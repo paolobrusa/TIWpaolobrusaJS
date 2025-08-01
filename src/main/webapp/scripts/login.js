@@ -26,7 +26,6 @@
         const formData = new FormData();
         formData.append('username', username);
         formData.append('password', password);
-        console.log(formData);
         fetch('Login', {
             method: 'POST',
             body: formData

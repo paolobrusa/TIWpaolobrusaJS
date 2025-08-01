@@ -21,6 +21,9 @@ public class ImageHandler extends HttpServlet {
 
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String path = req.getPathInfo();
+        if (path == null || path.isEmpty()) {
+            return;
+        }
         String contentType = getServletContext().getMimeType(path.substring(1));
         File image = new File(dir, path.substring(1));
         if(!image.exists()){

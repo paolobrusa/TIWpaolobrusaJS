@@ -54,7 +54,7 @@
 
                     return data.value;
                 } catch(e) {
-                    console.warn('Storage retrieval error:', e);
+                    console.warn('Storage error:', e);
                     return null;
                 }
             },
@@ -65,7 +65,7 @@
                         localStorage.removeItem(key);
                     }
                 } catch(e) {
-                    console.warn('Storage removal error:', e);
+                    console.warn('Storage error:', e);
                 }
             }
         };
@@ -195,7 +195,7 @@
             return div.innerHTML;
         }
 
-        // Formattazione valuta
+        // formattazione valuta
         function formatCurrency(value) {
             return new Intl.NumberFormat('it-IT', {
                 style: 'currency',
@@ -203,14 +203,14 @@
             }).format(value);
         }
 
-        // Formattazione data
+        // formattazione data
         function formatDate(date) {
             return new Date(date).toLocaleString('it-IT');
         }
 
         return {
             init: function() {
-                // Carica tutti i template dal DOM
+                // template DOM
                 const templateElements = document.querySelectorAll('template');
                 templateElements.forEach(template => {
                     templates[template.id] = template.content;
@@ -262,7 +262,7 @@
                     <td class="article-name">${sanitizer(article.name)}</td>
                     <td class="article-description">${sanitizer(article.description)}</td>
                     <td class="article-path">
-                        ${article.path ? `<img src="Image/${sanitizer(article.path)}" alt="Errore"/>` : 'Nessuna immagine'}
+                        ${article.path ? `<img src="Image/${sanitizer(article.path)}" alt="Errore"/>` : 'error'}
                     </td>
                     <td class="price">${formatCurrency(article.price)}</td>
                 `;
@@ -306,11 +306,10 @@
                 return div;
             },
 
-            createNoDataMessage: function(icon, title, subtitle = '') {
+            createNoDataMessage: function(title, subtitle = '') {
                 const div = document.createElement('div');
                 div.className = 'no-aste-message';
                 div.innerHTML = `
-                    <div class="no-aste-icon">${icon}</div>
                     <h3>${sanitizer(title)}</h3>
                     ${subtitle ? `<p>${sanitizer(subtitle)}</p>` : ''}
                 `;
@@ -356,13 +355,6 @@
                 }
             },
 
-            // showLoading: function(elementId) {
-            //     const element = document.getElementById(elementId);
-            //     if (element) {
-            //         element.innerHTML = '<div class="loading">Caricamento...</div>';
-            //     }
-            // },
-
             updateCount: function(elementId, count, suffix = '') {
                 const element = document.getElementById(elementId);
                 if (element) {
@@ -378,7 +370,6 @@
 
             if (!auctions || auctions.length === 0) {
                 const message = TemplateModule.createNoDataMessage(
-                    '🔍',
                     'Nessuna asta trovata'
                 );
                 container.innerHTML = '';
@@ -419,7 +410,6 @@
 
             if (!awards || awards.length === 0) {
                 const message = TemplateModule.createNoDataMessage(
-                    '🏆',
                     'Nessuna aggiudicazione',
                     'Non ci sono ancora aggiudicazioni'
                 );
@@ -480,7 +470,6 @@
 
             if (auctions.length === 0) {
                 const message = TemplateModule.createNoDataMessage(
-                    '🟢',
                     'Nessuna asta aperta',
                     'Non hai aste attualmente attive'
                 );
@@ -538,7 +527,6 @@
 
             if (auctions.length === 0) {
                 const message = TemplateModule.createNoDataMessage(
-                    '🔴',
                     'Nessuna asta chiusa',
                     'Non hai ancora aste terminate'
                 );
@@ -604,7 +592,6 @@
 
             if (!articles || articles.length === 0) {
                 const message = TemplateModule.createNoDataMessage(
-                    '📦',
                     'Nessun articolo disponibile'
                 );
                 container.innerHTML = '';
@@ -691,7 +678,6 @@
 
             if (!offers || offers.length === 0) {
                 const message = TemplateModule.createNoDataMessage(
-                    '💰',
                     'Nessuna offerta ricevuta'
                 );
                 container.innerHTML = '';
@@ -748,7 +734,7 @@
         }
 
         function goToAwardDetail(auctionId) {
-            AwardController.show(auctionId);
+            AggiudController.show(auctionId);
         }
 
         function goToDettaglioAsta(auctionId) {
@@ -789,7 +775,6 @@
                 // Mostra messaggio iniziale se è la prima volta o non ci sono aste visitate
                 document.getElementById('aste-title').textContent = 'Aste Disponibili';
                 const message = TemplateModule.createNoDataMessage(
-                    '🔍',
                     'Cerca articoli per visualizzare le aste',
                     'Le aste che visiterai appariranno qui'
                 );
@@ -841,7 +826,6 @@
             if (!auctionIds || auctionIds.length === 0) {
                 document.getElementById('aste-title').textContent = 'Aste Disponibili';
                 const message = TemplateModule.createNoDataMessage(
-                    '🔍',
                     'Cerca articoli per visualizzare le aste'
                 );
                 document.getElementById('auctions-list').innerHTML = '';
@@ -860,7 +844,6 @@
                     // Le aste visitate non esistono più o sono terminate
                     document.getElementById('aste-title').textContent = 'Aste Disponibili';
                     const message = TemplateModule.createNoDataMessage(
-                        '🔍',
                         'Le aste visitate sono terminate',
                         'Cerca nuove aste da visualizzare'
                     );
@@ -877,7 +860,6 @@
                 console.error('Error loading visited auctions:', error);
                 document.getElementById('aste-title').textContent = 'Aste Disponibili';
                 const message = TemplateModule.createNoDataMessage(
-                    '🔍',
                     'Errore nel caricamento delle aste visitate',
                     'Prova a cercare nuove aste'
                 );
@@ -1049,15 +1031,12 @@
                 document.getElementById('content').innerHTML = '';
                 document.getElementById('content').appendChild(template);
 
-                // Popola i dati
                 ArticleRenderer.displayArticlesInTable(response.articoli || [], 'articoli-table-container', true);
                 OfferRenderer.displayOffersInTable(response.offerta || [], 'offerte-table-container', 'attiva');
 
-                // Aggiorna i contatori
                 UIModule.updateCount('articles-count', (response.articoli || []).length, 'articoli');
                 UIModule.updateCount('offers-count', (response.offerta || []).length, 'offerte');
 
-                // Setup form
                 const offerForm = document.getElementById('offer-form');
                 if (offerForm) {
                     offerForm.dataset.auctionId = auctionId;
@@ -1097,7 +1076,7 @@
         };
     })();
 
-    const AwardController = (function() {
+    const AggiudController = (function() {
         async function show(auctionId) {
             try {
                 const response = await ApiModule.get(`Offerta?idasta=${auctionId}`);
@@ -1111,15 +1090,12 @@
                 document.getElementById('content').innerHTML = '';
                 document.getElementById('content').appendChild(template);
 
-                // Popola i dati
                 ArticleRenderer.displayArticlesInTable(response.articoli || [], 'articoli-table-container', true);
                 OfferRenderer.displayOffersInTable(response.offerta || [], 'offerte-table-container', 'chiusa');
 
-                // Aggiorna i contatori
                 UIModule.updateCount('articles-count', (response.articoli || []).length, 'articoli');
                 UIModule.updateCount('offers-count', (response.offerta || []).length, 'offerte');
 
-                // Nascondi il form dell'offerta per le aggiudicazioni
                 const offerFormContainer = document.querySelector('.forms-container');
                 if (offerFormContainer) {
                     offerFormContainer.style.display = 'none';
@@ -1152,14 +1128,12 @@
 
                 const asta = response.asta;
 
-                // Popola i dati dell'asta
                 document.querySelector('#asta-id').textContent = `#${asta.id}`;
                 document.querySelector('#asta-id-value').textContent = `#${asta.id}`;
                 document.getElementById('asta-price').textContent = `€${asta.initialPrice}`;
                 document.getElementById('asta-minbid').textContent = `€${asta.minBid}`;
                 document.getElementById('asta-date').textContent = new Date(asta.date).toLocaleString('it-IT');
 
-                // Status
                 const statusContainer = document.getElementById('asta-status');
                 if (asta.state === 'attiva') {
                     statusContainer.innerHTML = '<span class="status-badge status-active">🟢 Attiva</span>';
@@ -1182,7 +1156,6 @@
                     }
                 }
 
-                // Sezione vincitore (solo se chiusa)
                 if (asta.state === 'chiusa' && response.utente) {
                     const winnerSection = document.getElementById('winner-section');
                     if (winnerSection) {

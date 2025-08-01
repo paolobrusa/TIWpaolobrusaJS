@@ -134,7 +134,7 @@ public class Offerte extends HttpServlet {
         Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
         String id = request.getParameter("idasta");
         String offerta = request.getParameter("offertaprezzo");
-        if (id == null || offerta == null) {
+        if (id == null || offerta == null || offerta.length() > 11) {
             JsonObject jsonResponse = new JsonObject();
             jsonResponse.addProperty("success", false);
             jsonResponse.add("message", gson.toJsonTree("Un parametro è null, non è accettato"));

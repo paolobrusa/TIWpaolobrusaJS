@@ -1,4 +1,4 @@
-/* ===== RESET E BASE ===== */
+/* base */
 * {
     margin: 0;
     padding: 0;
@@ -13,7 +13,7 @@ body {
     line-height: 1.6;
 }
 
-/* ===== CONTAINERS ===== */
+/* containers */
 .homepage-container,
 .login-container,
 .aste-container {
@@ -38,7 +38,7 @@ body {
     max-width: 1200px;
 }
 
-/* ===== HEADERS ===== */
+/* header */
 .homepage-header,
 .login-header,
 .aste-header {
@@ -62,7 +62,7 @@ body {
     font-size: 1.1rem;
 }
 
-/* ===== MESSAGGI ===== */
+/* mess */
 .error-message {
     background: #fee;
     color: #d63384;
@@ -73,7 +73,7 @@ body {
     font-weight: 500;
 }
 
-/* ===== BOTTONI ===== */
+/* btn */
 .btn-option,
 .btn-login,
 .btn-logout,
@@ -115,7 +115,7 @@ body {
     background: #c53030;
 }
 
-/* ===== FORMS ===== */
+/* form */
 .form-group {
     margin-bottom: 1.5rem;
 }
@@ -152,7 +152,7 @@ body {
     min-height: 80px;
 }
 
-/* ===== HOMEPAGE SPECIFICO ===== */
+/* homepage */
 .options-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -196,7 +196,7 @@ body {
     border-top: 1px solid #e5e7eb;
 }
 
-/* ===== TABELLE ===== */
+/* tables */
 .tables-container,
 .forms-container {
     display: grid;
@@ -254,7 +254,6 @@ body {
     font-size: 0.9rem;
 }
 
-/* ===== STILI TABELLE ===== */
 .aste-table {
     width: 100%;
     border-collapse: collapse;
@@ -285,7 +284,6 @@ body {
     background: rgba(102, 126, 234, 0.05);
 }
 
-/* ===== ELEMENTI TABELLE ===== */
 .asta-id {
     font-weight: 700;
     color: #667eea;
@@ -324,7 +322,6 @@ body {
     font-family: monospace;
 }
 
-/* ===== STATUS BADGES ===== */
 .status-badge {
     display: inline-block;
     padding: 0.3rem 0.6rem;
@@ -364,7 +361,6 @@ body {
     color: #475569;
 }
 
-/* ===== RICERCA ===== */
 .search-section {
     margin-bottom: 2rem;
 }
@@ -385,7 +381,6 @@ body {
     flex: 1;
 }
 
-/* ===== MESSAGGI VUOTI ===== */
 .no-aste-message {
     text-align: center;
     padding: 3rem 2rem;
@@ -410,7 +405,6 @@ body {
     color: #64748b;
 }
 
-/* ===== DETTAGLIO ASTA ===== */
 .asta-container .main-content {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -477,7 +471,6 @@ body {
     color: #dc2626;
 }
 
-/* ===== ARTICOLI SEZIONE ===== */
 .asta-articles {
     margin-bottom: 2rem;
 }
@@ -528,13 +521,11 @@ body {
     border-left: 4px solid #10b981;
 }
 
-/* ===== AZIONI ===== */
 .asta-actions {
     text-align: center;
     margin: 2rem 0;
 }
 
-/* ===== VINCITORE ===== */
 .winner-section {
     margin-top: 2rem;
     padding: 1.5rem;
@@ -644,7 +635,6 @@ body {
     color: #059669;
 }
 
-/* ===== BOTTONE HOMEPAGE ===== */
 .homepage-button-container {
     text-align: center;
     margin-top: 2rem;
@@ -652,7 +642,7 @@ body {
     border-top: 1px solid #e5e7eb;
 }
 
-/* ===== RESPONSIVE ===== */
+/* responsive */
 @media (max-width: 768px) {
     .homepage-container,
     .login-container,

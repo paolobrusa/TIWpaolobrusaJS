@@ -96,8 +96,27 @@ public class CreateAsta extends HttpServlet {
         }
         AstaDAO aDao2 = new AstaDAO(con);
         int idAsta = 0;
+        String mb = request.getParameter("minBid");
+        if (mb == null || mb.length() > 11) {
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Minbid non valido, prezzo piu piccolo richiesto"));
+            response.getWriter().write(gson.toJson(jsonResponse));
+            return;
+        }
+        int minBid = 0;
         try {
-            idAsta = aDao2.addAsta(articoli.stream().mapToInt(Articolo::getPrice).sum(), Integer.parseInt(request.getParameter("minBid")), LocalDateTime.parse(request.getParameter("date"), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")));
+            minBid = Integer.parseInt(request.getParameter("minBid"));
+        }
+        catch(NumberFormatException e){
+            JsonObject jsonResponse = new JsonObject();
+            jsonResponse.addProperty("success", false);
+            jsonResponse.add("message", gson.toJsonTree("Formato non corretto"));
+            response.getWriter().write(gson.toJson(jsonResponse));
+            return;
+        }
+        try {
+            idAsta = aDao2.addAsta(articoli.stream().mapToInt(Articolo::getPrice).sum(), minBid, LocalDateTime.parse(request.getParameter("date"), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")));
         } catch (SQLException e) {
             JsonObject jsonResponse = new JsonObject();
             jsonResponse.addProperty("success", false);

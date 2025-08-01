@@ -71,7 +71,7 @@ public class AddArticolo extends HttpServlet {
             response.getWriter().write(gson.toJson(jsonResponse));
             return;
         }
-        if(n.length() > 50 || d.length() > 255 || n.isEmpty() || d.isEmpty()) {
+        if(n.length() > 50 || d.length() > 255 || p.length() > 11 || n.isEmpty() || d.isEmpty()) {
             JsonObject jsonResponse = new JsonObject();
             jsonResponse.addProperty("success", false);
             jsonResponse.add("message", gson.toJsonTree("Lunghezza attributi non valida, accorcia"));
